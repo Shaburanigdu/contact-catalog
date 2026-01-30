@@ -14,7 +14,7 @@ async function hashPassword(password: string): Promise<string> {
 async function createSessionSimplified(userId: string, refreshToken: string, userAgent?: string, ipAddress?: string) {
   try {
     // Просто сохраняем сессию с refresh token (в production нужно хешировать!)
-    const session = await prisma.user_sessions.create({
+    const session = await prisma.userSession.create({
       data: {
         user_id: userId,
         refresh_token_hash: refreshToken, // ВНИМАНИЕ: не хешируем для простоты
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user already exists
     console.log('🔍 Проверка существующего пользователя...')
-    const existingUser = await prisma.users.findFirst({
+    const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
           { email: validatedData.email },
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Create user
     console.log('👤 Создание пользователя в БД...')
-    const user = await prisma.users.create({
+    const user = await prisma.user.create({
       data: {
         email: validatedData.email,
         username: validatedData.username,

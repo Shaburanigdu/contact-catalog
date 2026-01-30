@@ -8,7 +8,7 @@ import { z } from 'zod'
 async function createSessionSimplified(userId: string, refreshToken: string, userAgent?: string, ipAddress?: string) {
   try {
     // Просто сохраняем сессию с refresh token (в production нужно хешировать!)
-    const session = await prisma.user_sessions.create({
+    const session = await prisma.userSession.create({
       data: {
         user_id: userId,
         refresh_token_hash: refreshToken, // ВНИМАНИЕ: не хешируем для простоты
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const validatedData = loginSchema.parse(body)
 
     // Find user
-    const user = await prisma.users.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email: validatedData.email }
     })
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     await createSessionSimplified(user.id, tokens.refreshToken, userAgent, ipAddress)
 
     // Update last login
-    await prisma.users.update({
+    await prisma.user.update({
       where: { id: user.id },
       data: { last_login_at: new Date() }
     })

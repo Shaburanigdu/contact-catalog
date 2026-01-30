@@ -1,29 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revokeSession } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get session ID from cookies or request body
     const sessionId = request.cookies.get('session_id')?.value
-    const refreshToken = request.cookies.get('refresh_token')?.value
     
     if (sessionId) {
       try {
+        // Отзываем сессию в БД
         await revokeSession(sessionId)
       } catch (error) {
-        console.log('Не удалось отозвать сессию:', error)
+        console.log('Session revocation failed:', error)
       }
     }
     
-    // Clear cookies
     const response = NextResponse.json({
       message: 'Успешный выход'
     })
     
+    // Очищаем ВСЕ auth cookies
     response.cookies.delete('access_token')
     response.cookies.delete('refresh_token')
     response.cookies.delete('session_id')
+    
+    // Также можно добавить очистку других cookies, если они есть
+    // response.cookies.getAll().forEach(cookie => {
+    //   response.cookies.delete(cookie.name)
+    // })
     
     return response
   } catch (error) {

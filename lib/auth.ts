@@ -99,7 +99,7 @@ export async function verifyRefreshToken(token: string): Promise<UserPayload> {
 export async function createSession(userId: string, refreshToken: string, userAgent?: string, ipAddress?: string) {
   const refreshTokenHash = await hashPassword(refreshToken)
   
-  const session = await prisma.user_sessions.create({
+  const session = await prisma.userSession.create({
     data: {
       user_id: userId,
       refresh_token_hash: refreshTokenHash,
@@ -113,7 +113,7 @@ export async function createSession(userId: string, refreshToken: string, userAg
 }
 
 export async function validateSession(refreshToken: string, sessionId: string) {
-  const session = await prisma.user_sessions.findUnique({
+  const session = await prisma.userSession.findUnique({
     where: { id: sessionId },
     include: { users: true }
   })
@@ -130,15 +130,16 @@ export async function validateSession(refreshToken: string, sessionId: string) {
   return session
 }
 
+
 export async function revokeSession(sessionId: string) {
-  await prisma.user_sessions.update({
+  await prisma.userSession.update({
     where: { id: sessionId },
     data: { revoked_at: new Date() }
   })
 }
 
 export async function revokeAllUserSessions(userId: string) {
-  await prisma.user_sessions.updateMany({
+  await prisma.userSession.updateMany({
     where: { 
       user_id: userId,
       revoked_at: null 
