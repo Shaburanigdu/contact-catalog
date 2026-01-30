@@ -74,7 +74,10 @@ export async function createAuditLog(
         entity_id: entityId,
         old_values: oldValues,
         new_values: newValues,
-        ip_address: request?.ip || request?.headers.get('x-forwarded-for') || undefined,
+        // Исправлено: у NextRequest нет свойства ip, используем заголовок
+        ip_address: request?.headers.get('x-forwarded-for') || 
+                   request?.headers.get('x-real-ip') || 
+                   undefined,
         user_agent: request?.headers.get('user-agent') || undefined,
       },
     })

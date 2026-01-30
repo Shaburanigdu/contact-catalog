@@ -10,6 +10,7 @@ export interface UserPayload {
   username?: string
 }
 
+
 export async function verifyAccessTokenForMiddleware(token: string): Promise<UserPayload> {
   try {
     const secret = new TextEncoder().encode(JWT_SECRET)
@@ -47,16 +48,16 @@ export async function verifyRefreshTokenForMiddleware(token: string): Promise<Us
   }
 }
 
-export function getAuthCookies() {
-  const cookieStore = cookies()
+export async function getAuthCookies() { // Добавлено async
+  const cookieStore = await cookies() // Добавлено await
   return {
     accessToken: cookieStore.get('access_token')?.value,
     refreshToken: cookieStore.get('refresh_token')?.value,
   }
 }
 
-export function setAuthCookiesForMiddleware(accessToken: string, refreshToken: string) {
-  const cookieStore = cookies()
+export async function setAuthCookiesForMiddleware(accessToken: string, refreshToken: string) { // async
+  const cookieStore = await cookies() // await
   
   cookieStore.set('access_token', accessToken, {
     httpOnly: true,
@@ -75,8 +76,8 @@ export function setAuthCookiesForMiddleware(accessToken: string, refreshToken: s
   })
 }
 
-export function clearAuthCookiesForMiddleware() {
-  const cookieStore = cookies()
+export async function clearAuthCookiesForMiddleware() { // async
+  const cookieStore = await cookies() // await
   
   cookieStore.delete('access_token')
   cookieStore.delete('refresh_token')

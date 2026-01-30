@@ -148,12 +148,12 @@ export async function revokeAllUserSessions(userId: string) {
   })
 }
 
-export function setAuthCookies(accessToken: string, refreshToken: string) {
+export async function setAuthCookies(accessToken: string, refreshToken: string) {
   console.log('🍪 Установка cookies...')
   console.log('   Access токен (первые 20 символов):', accessToken.substring(0, 20) + '...')
   console.log('   Refresh токен (первые 20 символов):', refreshToken.substring(0, 20) + '...')
   
-  const cookieStore = cookies()
+  const cookieStore = await cookies() // Добавлено await
   
   if (!cookieStore) {
     console.error('❌ Cookie store не доступен!')
@@ -184,8 +184,8 @@ export function setAuthCookies(accessToken: string, refreshToken: string) {
   }
 }
 
-export function clearAuthCookies() {
-  const cookieStore = cookies()
+export async function clearAuthCookies() {
+  const cookieStore = await cookies() // Добавлено await
   
   cookieStore.delete('access_token')
   cookieStore.delete('refresh_token')
@@ -193,7 +193,7 @@ export function clearAuthCookies() {
 
 export async function getCurrentUser() {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies() // Добавлено await
     const accessToken = cookieStore.get('access_token')?.value
     
     if (!accessToken) {
