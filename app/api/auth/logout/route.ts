@@ -18,15 +18,40 @@ export async function POST(request: NextRequest) {
       message: 'Успешный выход'
     })
     
-    // Очищаем ВСЕ auth cookies
-    response.cookies.delete('access_token')
-    response.cookies.delete('refresh_token')
-    response.cookies.delete('session_id')
+    // Очищаем ВСЕ auth cookies с разными параметрами
+    const cookiesToDelete = [
+      'access_token',
+      'refresh_token', 
+      'session_id',
+      'token',
+      'auth_token',
+      'next-auth.session-token',
+      'next-auth.csrf-token',
+      'next-auth.callback-url'
+    ]
     
-    // Также можно добавить очистку других cookies, если они есть
-    // response.cookies.getAll().forEach(cookie => {
-    //   response.cookies.delete(cookie.name)
-    // })
+    cookiesToDelete.forEach(cookieName => {
+      // Удаляем cookie с разными доменами и путями для надежности
+      response.cookies.delete(cookieName)
+      
+      // Дополнительные параметры для полного удаления
+      response.cookies.set({
+        name: cookieName,
+        value: '',
+        expires: new Date(0),
+        path: '/',
+        maxAge: 0
+      })
+    })
+    
+    // Также удаляем все cookies, которые могут быть связаны с аутентификацией
+    request.cookies.getAll().forEach(cookie => {
+      if (cookie.name.includes('auth') || 
+          cookie.name.includes('token') || 
+          cookie.name.includes('session')) {
+        response.cookies.delete(cookie.name)
+      }
+    })
     
     return response
   } catch (error) {

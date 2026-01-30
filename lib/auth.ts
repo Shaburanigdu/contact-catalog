@@ -96,22 +96,56 @@ export async function verifyRefreshToken(token: string): Promise<UserPayload> {
   }
 }
 
-export async function createSession(userId: string, refreshToken: string, userAgent?: string, ipAddress?: string) {
-  const refreshTokenHash = await hashPassword(refreshToken)
+// lib/auth.ts - проверьте функцию createSession
+// lib/auth.ts - ПРОВЕРЬТЕ ЭТУ ФУНКЦИЮ
+export async function createSession(
+  userId: string,
+  refreshToken: string,
+  userAgent?: string,
+  ipAddress?: string
+) {
+  console.log('🛠️ Создание сессии для пользователя:', userId)
+  console.log('🔐 Refresh токен для хэширования (первые 30 символов):', refreshToken.substring(0, 30) + '...')
+  console.log('🔐 Длина токена:', refreshToken.length)
+  
+  // ВАЖНО: Для токенов используем bcrypt с помощью import
+  const bcrypt = await import('bcryptjs')
+  
+  // Хэшируем токен с использованием bcrypt
+  console.log('🔄 Хэширование токена с bcrypt...')
+  const refreshTokenHash = await bcrypt.hash(refreshToken, 10)
+  
+  console.log('✅ Хэш токена создан, первые 20 символов:', refreshTokenHash.substring(0, 20))
+  console.log('✅ Хэш начинается с $2a$?', refreshTokenHash.startsWith('$2a$'))
+  console.log('✅ Длина хэша:', refreshTokenHash.length)
+  
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   
   const session = await prisma.userSession.create({
     data: {
       user_id: userId,
-      refresh_token_hash: refreshTokenHash,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      refresh_token_hash: refreshTokenHash, // ← Теперь это точно правильный bcrypt хэш!
+      expires_at: expiresAt,
       user_agent: userAgent,
       ip_address: ipAddress
     }
   })
 
+  console.log('✅ Сессия создана, ID:', session.id)
+  
+  // ВЕРНЕМ ТО, ЧТО СОХРАНИЛИ (для отладки)
+  const savedSession = await prisma.userSession.findUnique({
+    where: { id: session.id }
+  })
+  console.log('🔍 Проверка сохраненного хэша:')
+  console.log('   Длина:', savedSession?.refresh_token_hash?.length)
+  console.log('   Начинается с:', savedSession?.refresh_token_hash?.substring(0, 20))
+  console.log('   Формат правильный?:', savedSession?.refresh_token_hash?.startsWith('$2a$'))
+  
   return session
 }
 
+// lib/auth.ts - исправленная validateSession
 export async function validateSession(refreshToken: string, sessionId: string) {
   const session = await prisma.userSession.findUnique({
     where: { id: sessionId },
@@ -122,7 +156,11 @@ export async function validateSession(refreshToken: string, sessionId: string) {
     throw new AuthError('Invalid session')
   }
 
-  const isValid = await verifyPassword(refreshToken, session.refresh_token_hash)
+  // Импортируем bcrypt для проверки
+  const bcrypt = await import('bcryptjs')
+  
+  // Проверяем токен с помощью bcrypt
+  const isValid = await bcrypt.compare(refreshToken, session.refresh_token_hash)
   if (!isValid) {
     throw new AuthError('Invalid refresh token')
   }

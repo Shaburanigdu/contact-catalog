@@ -1,34 +1,14 @@
+// app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { generateTokens } from '@/lib/auth'
+import { generateTokens, createSession } from '@/lib/auth'  // Импортируем правильную createSession
 import { registerSchema } from '@/lib/validation'
 import { z } from 'zod'
 import * as bcrypt from 'bcryptjs'
 
-// Функция для хеширования пароля (работает только в Node.js)
+// Функция для хеширования пароля
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10)
-}
-
-// Упрощенная функция для создания сессии без bcrypt
-async function createSessionSimplified(userId: string, refreshToken: string, userAgent?: string, ipAddress?: string) {
-  try {
-    // Просто сохраняем сессию с refresh token (в production нужно хешировать!)
-    const session = await prisma.userSession.create({
-      data: {
-        user_id: userId,
-        refresh_token_hash: refreshToken, // ВНИМАНИЕ: не хешируем для простоты
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        user_agent: userAgent,
-        ip_address: ipAddress
-      }
-    })
-
-    return session
-  } catch (error) {
-    console.error('Ошибка создания сессии:', error)
-    throw error
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -45,7 +25,7 @@ export async function POST(request: NextRequest) {
     const validatedData = registerSchema.parse(body)
     console.log('✅ Данные валидированы')
 
-    // Check if user already exists
+    // Проверяем существующего пользователя
     console.log('🔍 Проверка существующего пользователя...')
     const existingUser = await prisma.user.findFirst({
       where: {
@@ -64,12 +44,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Hash password
+    // Хешируем пароль
     console.log('🔑 Хеширование пароля...')
     const hashedPassword = await hashPassword(validatedData.password)
     console.log('   Длина хеша:', hashedPassword.length)
 
-    // Create user
+    // Создаем пользователя
     console.log('👤 Создание пользователя в БД...')
     const user = await prisma.user.create({
       data: {
@@ -90,7 +70,7 @@ export async function POST(request: NextRequest) {
       username: user.username 
     })
 
-    // Generate tokens
+    // Генерируем токены
     console.log('🎫 Генерация токенов...')
     const tokens = await generateTokens({
       id: user.id,
@@ -98,14 +78,21 @@ export async function POST(request: NextRequest) {
       username: user.username || undefined
     })
 
-    // Create session
+    // СОЗДАЕМ СЕССИЮ С ПРАВИЛЬНОЙ ФУНКЦИЕЙ createSession
     console.log('📱 Создание сессии...')
     const userAgent = request.headers.get('user-agent') || undefined
-    const ipAddress = request.headers.get('x-forwarded-for') || undefined
+    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined
     
-    await createSessionSimplified(user.id, tokens.refreshToken, userAgent, ipAddress)
+    const session = await createSession(
+      user.id,
+      tokens.refreshToken,
+      userAgent,
+      ipAddress
+    )
 
-    // Create response
+    console.log('✅ Сессия создана с ID:', session.id)
+
+    // Создаем ответ
     const response = NextResponse.json({
       message: 'Пользователь успешно зарегистрирован',
       user: {
@@ -115,7 +102,7 @@ export async function POST(request: NextRequest) {
       }
     }, { status: 201 })
 
-    // Set cookies in response
+    // Устанавливаем cookies
     response.cookies.set('access_token', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Home } from 'lucide-react';
 
 export default function NewContactPage() {
   const router = useRouter();
@@ -56,13 +56,26 @@ export default function NewContactPage() {
   return (
     <div className="container mx-auto px-4 py-6 max-w-2xl">
       <div className="mb-6">
-        <Link
-          href="/dashboard/contacts"
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
-        >
-          <ArrowLeft size={20} />
-          Назад к контактам
-        </Link>
+        {/* Добавлена навигация с кнопкой на главную */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-4">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors p-2 rounded-lg hover:bg-gray-100"
+              title="На главную"
+            >
+              <Home size={20} />
+              <span className="hidden sm:inline">На главную</span>
+            </Link>
+            <Link
+              href="/dashboard/contacts"
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+            >
+              <ArrowLeft size={20} />
+              Назад к контактам
+            </Link>
+          </div>
+        </div>
         <h1 className="text-2xl md:text-3xl font-bold">Создание нового контакта</h1>
       </div>
 

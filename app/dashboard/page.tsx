@@ -58,10 +58,41 @@ export default function DashboardPage() {
     }
   }
 
-  const handleLogout = () => {
-    // Здесь будет логика выхода
-    console.log('Logout clicked')
-    // Например: router.push('/login')
+  const handleLogout = async () => {
+    try {
+      console.log('🚪 Выход из системы...');
+      
+      // Очищаем локальное хранилище
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        sessionStorage.removeItem('auth_token');
+      }
+      
+      // Отправляем запрос на сервер для удаления токена
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('✅ Выход успешен');
+        
+        // Принудительно обновляем страницу для сброса состояния
+        window.location.href = '/login';
+      } else {
+        console.error('❌ Ошибка выхода:', data.error);
+        alert('Ошибка при выходе из системы');
+      }
+    } catch (error) {
+      console.error('❌ Ошибка при выходе:', error);
+      // Даже при ошибке перенаправляем на логин
+      router.push('/login');
+    }
   }
 
   if (loading) {
