@@ -1,36 +1,101 @@
-import axios from 'axios'
+// lib/api-client.ts - ЗАМЕНИТЕ СОДЕРЖИМОЕ
+const API_BASE_URL = ''
 
-// Создаем инстанс axios
-const apiClient = axios.create({
-  baseURL: '/api',
-  withCredentials: true
-})
+class ApiClient {
+  private isRefreshing = false
+  private failedQueue: Array<{resolve: (value?: any) => void; reject: (reason?: any) => void}> = []
 
-// Перехватчик для обновления токенов
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config
-
-    // Если ошибка 401 (Unauthorized) и это не запрос на обновление токенов
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
-      try {
-        // Пытаемся обновить токены
-        await axios.post('/api/auth/refresh', {}, { withCredentials: true })
-        
-        // Повторяем оригинальный запрос с новым токеном
-        return apiClient(originalRequest)
-      } catch (refreshError) {
-        // Если обновление не удалось, редиректим на логин
-        window.location.href = '/login'
-        return Promise.reject(refreshError)
+  private async refreshToken(): Promise<boolean> {
+    try {
+      console.log('🔄 API Client: Пытаемся обновить токен...')
+      
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (response.ok) {
+        console.log('✅ API Client: Токен успешно обновлен')
+        return true
+      } else {
+        console.error('❌ API Client: Не удалось обновить токен')
+        return false
       }
+    } catch (error) {
+      console.error('❌ API Client: Ошибка при обновлении токена:', error)
+      return false
+    }
+  }
+
+  async request(url: string, options: RequestInit = {}) {
+    // Добавляем credentials для отправки cookies
+    const requestOptions: RequestInit = {
+      ...options,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     }
 
-    return Promise.reject(error)
+    // Первый запрос
+    let response = await fetch(url, requestOptions)
+    
+    // Если получили 401, пробуем обновить токен
+    if (response.status === 401 && !url.includes('/auth/refresh')) {
+      console.log('🔄 API Client: Получен 401, пытаемся обновить токен...')
+      
+      const refreshSuccess = await this.refreshToken()
+      
+      if (refreshSuccess) {
+        // Повторяем оригинальный запрос
+        response = await fetch(url, requestOptions)
+      } else {
+        // Если обновление не удалось, редиректим на логин
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
+        throw new Error('Authentication failed')
+      }
+    }
+    
+    return response
   }
-)
 
-export default apiClient
+  async get(url: string, options?: RequestInit) {
+    return this.request(url, { ...options, method: 'GET' })
+  }
+
+  async post(url: string, data?: any, options?: RequestInit) {
+    return this.request(url, {
+      ...options,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  async put(url: string, data?: any, options?: RequestInit) {
+    return this.request(url, {
+      ...options,
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  async delete(url: string, options?: RequestInit) {
+    return this.request(url, { ...options, method: 'DELETE' })
+  }
+}
+
+export const api = new ApiClient()
+
+// Для обратной совместимости
+export default {
+  get: (url: string, options?: RequestInit) => api.get(url, options),
+  post: (url: string, data?: any, options?: RequestInit) => api.post(url, data, options),
+  put: (url: string, data?: any, options?: RequestInit) => api.put(url, data, options),
+  delete: (url: string, options?: RequestInit) => api.delete(url, options),
+}

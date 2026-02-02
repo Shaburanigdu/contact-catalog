@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import CreateContactModal from '@/components/contacts/CreateContactModal';
 import { Button } from '@/components/ui/button'
 import { ContactList } from '@/components/contacts/ContactList'
+import { api } from '@/lib/api-client' // Импортируем новый api-клиент
+import { useTokenRefresh } from '@/hooks/useTokenRefresh' // Импортируем хук
 import {
   Users,
   Calendar,
@@ -14,7 +15,6 @@ import {
   UserPlus,
   Activity,
   MapPin,
-  Building,
   Settings,
   LogOut,
 } from 'lucide-react'
@@ -30,6 +30,9 @@ export default function DashboardPage() {
   const router = useRouter()
   const [stats, setStats] = useState<DashboardStats>({})
   const [loading, setLoading] = useState(true)
+  
+  // Используем хук для периодического обновления токена
+  useTokenRefresh()
 
   useEffect(() => {
     fetchDashboardData()
@@ -38,13 +41,16 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       const [contactsResponse, statsResponse] = await Promise.all([
-        fetch('/api/contacts?limit=5'),
-        fetch('/api/contacts/stats'),
+        api.get('/api/contacts?limit=5'),
+        api.get('/api/contacts/stats'),
       ])
 
       if (contactsResponse.ok) {
         const contactsData = await contactsResponse.json()
-        // Обрабатываем данные контактов
+        // Обрабатываем данные контактов (если нужно)
+        if (contactsData.data) {
+          // Сохраняем данные, если они нужны
+        }
       }
 
       if (statsResponse.ok) {
@@ -53,6 +59,14 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
+      
+      // Если ошибка авторизации, middleware уже перенаправит на логин
+      if (error instanceof Error && error.message === 'Authentication failed') {
+        console.log('❌ Ошибка авторизации, перенаправление на логин...')
+        return
+      }
+      
+      // Обработка других ошибок
     } finally {
       setLoading(false)
     }
@@ -69,14 +83,8 @@ export default function DashboardPage() {
         sessionStorage.removeItem('auth_token');
       }
       
-      // Отправляем запрос на сервер для удаления токена
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
+      // Используем новый api-клиент для выхода
+      const response = await api.post('/api/auth/logout', {})
       const data = await response.json();
       
       if (response.ok) {
@@ -91,7 +99,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('❌ Ошибка при выходе:', error);
       // Даже при ошибке перенаправляем на логин
-      router.push('/login');
+      window.location.href = '/login';
     }
   }
 

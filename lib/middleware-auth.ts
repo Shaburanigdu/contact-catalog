@@ -1,5 +1,5 @@
+// lib/middleware-auth.ts
 import * as jose from 'jose'
-import { cookies } from 'next/headers'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-change-in-production'
@@ -10,24 +10,24 @@ export interface UserPayload {
   username?: string
 }
 
-
-export async function verifyAccessTokenForMiddleware(token: string): Promise<UserPayload> {
+export async function verifyAccessTokenForMiddleware(token: string) {
   try {
     const secret = new TextEncoder().encode(JWT_SECRET)
     const { payload } = await jose.jwtVerify(token, secret, {
       algorithms: ['HS256']
     })
     
-    console.log('   ✅ Токен валиден, пользователь:', payload.email)
     return {
       id: payload.id as string,
       email: payload.email as string,
       username: payload.username as string | undefined
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    console.log('   ❌ Ошибка верификации токена:', errorMessage)
-    throw new Error('Invalid or expired access token')
+    // Определяем тип ошибки для лучшей диагностики
+    if (error instanceof jose.errors.JWTExpired) {
+      throw new Error('Token expired')
+    }
+    throw new Error('Invalid token')
   }
 }
 
@@ -48,37 +48,12 @@ export async function verifyRefreshTokenForMiddleware(token: string): Promise<Us
   }
 }
 
-export async function getAuthCookies() { // Добавлено async
-  const cookieStore = await cookies() // Добавлено await
-  return {
-    accessToken: cookieStore.get('access_token')?.value,
-    refreshToken: cookieStore.get('refresh_token')?.value,
-  }
-}
+// УДАЛЯЕМ следующие функции, так как они не работают в middleware:
+// - getAuthCookies()
+// - setAuthCookiesForMiddleware()
+// - clearAuthCookiesForMiddleware()
 
-export async function setAuthCookiesForMiddleware(accessToken: string, refreshToken: string) { // async
-  const cookieStore = await cookies() // await
-  
-  cookieStore.set('access_token', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 15 * 60,
-    path: '/'
-  })
-
-  cookieStore.set('refresh_token', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60,
-    path: '/'
-  })
-}
-
-export async function clearAuthCookiesForMiddleware() { // async
-  const cookieStore = await cookies() // await
-  
-  cookieStore.delete('access_token')
-  cookieStore.delete('refresh_token')
-}
+// Вместо них используйте в middleware:
+// - request.cookies.get('access_token')
+// - response.cookies.set(...)
+// - response.cookies.delete('access_token')
