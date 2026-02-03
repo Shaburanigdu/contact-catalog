@@ -22,3 +22,14 @@ export default function RootLayout({
     </html>
   )
 }
+
+// app/layout.tsx или app/providers.tsx
+import { initializeSessionCleanup } from '@/lib/init-cleanup'
+
+// Только на сервере
+if (typeof window === 'undefined') {
+  // Запускаем при старте сервера (можно с задержкой)
+  setTimeout(async () => {
+    await initializeSessionCleanup()
+  }, 5000) // Через 5 секунд после старта
+}

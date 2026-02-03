@@ -96,17 +96,29 @@ export async function verifyRefreshToken(token: string): Promise<UserPayload> {
   }
 }
 
-// lib/auth.ts - проверьте функцию createSession
-// lib/auth.ts - ПРОВЕРЬТЕ ЭТУ ФУНКЦИЮ
 export async function createSession(
   userId: string,
   refreshToken: string,
   userAgent?: string,
   ipAddress?: string
 ) {
-  console.log('🛠️ Создание сессии для пользователя:', userId)
-  console.log('🔐 Refresh токен для хэширования (первые 30 символов):', refreshToken.substring(0, 30) + '...')
-  console.log('🔐 Длина токена:', refreshToken.length)
+  console.log('🛠️ СОЗДАНИЕ НОВОЙ СЕССИИ для пользователя:', userId)
+  
+  // Проверяем, не слишком ли много активных сессий у пользователя
+  const activeSessionsCount = await prisma.userSession.count({
+    where: {
+      user_id: userId,
+      revoked_at: null,
+      expires_at: { gt: new Date() }
+    }
+  })
+  
+  console.log(`📊 У пользователя уже ${activeSessionsCount} активных сессий`)
+  
+  // Если больше 5 активных сессий, предупреждаем (но все равно создаем)
+  if (activeSessionsCount >= 5) {
+    console.log(`⚠️  ВНИМАНИЕ: У пользователя уже ${activeSessionsCount} активных сессий!`)
+  }
   
   // ВАЖНО: Для токенов используем bcrypt с помощью import
   const bcrypt = await import('bcryptjs')
@@ -145,7 +157,55 @@ export async function createSession(
   return session
 }
 
-// lib/auth.ts - исправленная validateSession
+export async function createOrResumeSession(
+  userId: string,
+  refreshToken: string,
+  userAgent?: string,
+  ipAddress?: string
+) {
+  console.log('🤔 Проверяем существующие сессии с того же устройства...')
+  
+  if (!userAgent) {
+    console.log('⚠️ User agent не указан, создаем новую сессию')
+    return await createSession(userId, refreshToken, userAgent, ipAddress)
+  }
+  
+  // Ищем существующую активную сессию с того же user agent
+  const existingSession = await prisma.userSession.findFirst({
+    where: {
+      user_id: userId,
+      user_agent: userAgent,
+      revoked_at: null,
+      expires_at: { gt: new Date() }
+    }
+  })
+  
+  if (existingSession) {
+    console.log('✅ Найдена существующая сессия с того же устройства, обновляем...')
+    console.log(`📱 ID сессии: ${existingSession.id}`)
+    
+    // Обновляем существующую сессию
+    const bcrypt = await import('bcryptjs')
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10)
+    
+    const updatedSession = await prisma.userSession.update({
+      where: { id: existingSession.id },
+      data: {
+        refresh_token_hash: refreshTokenHash,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ip_address: ipAddress // Обновляем IP на случай, если он изменился
+      }
+    })
+    
+    console.log('✅ Существующая сессия обновлена')
+    return updatedSession
+  }
+  
+  // Если нет существующей сессии с этого устройства, создаем новую
+  console.log('📱 Создаем новую сессию для нового устройства...')
+  return await createSession(userId, refreshToken, userAgent, ipAddress)
+}
+
 export async function validateSession(refreshToken: string, sessionId: string) {
   const session = await prisma.userSession.findUnique({
     where: { id: sessionId },
@@ -167,7 +227,6 @@ export async function validateSession(refreshToken: string, sessionId: string) {
 
   return session
 }
-
 
 export async function revokeSession(sessionId: string) {
   await prisma.userSession.update({

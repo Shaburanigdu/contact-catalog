@@ -74,23 +74,30 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     try {
-      console.log('🚪 Выход из системы...');
+      console.log('🚪 Выход из системы и очистка сессий...');
       
-      // Очищаем локальное хранилище
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        sessionStorage.removeItem('auth_token');
-      }
+      // 1. Очищаем локальное хранилище с помощью утилиты
+      cleanupClientStorage()
       
-      // Используем новый api-клиент для выхода
+      // 2. Отправляем запрос на сервер для удаления токена и сессии
       const response = await api.post('/api/auth/logout', {})
       const data = await response.json();
       
       if (response.ok) {
-        console.log('✅ Выход успешен');
+        console.log('✅ Выход успешен, сессии очищены');
         
-        // Принудительно обновляем страницу для сброса состояния
+        // 3. Дополнительно вызываем очистку на сервере
+        try {
+          await api.post('/api/auth/cleanup', {}, {
+            headers: {
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_CLEANUP_SECRET}`
+            }
+          })
+        } catch (cleanupError) {
+          console.log('⚠️ Очистка сессий на сервере не удалась, но выход продолжается')
+        }
+        
+        // 4. Принудительно обновляем страницу
         window.location.href = '/login';
       } else {
         console.error('❌ Ошибка выхода:', data.error);
@@ -101,6 +108,32 @@ export default function DashboardPage() {
       // Даже при ошибке перенаправляем на логин
       window.location.href = '/login';
     }
+  }
+
+  // Утилита для очистки клиентского хранилища
+  const cleanupClientStorage = () => {
+    if (typeof window === 'undefined') return
+    
+    // Очищаем все auth-ключи из localStorage
+    const authKeys = Object.keys(localStorage).filter(key => 
+      key.includes('auth') || 
+      key.includes('token') || 
+      key.includes('session') ||
+      key.includes('user_')
+    )
+    
+    authKeys.forEach(key => {
+      localStorage.removeItem(key)
+    })
+    
+    // Очищаем sessionStorage
+    sessionStorage.clear()
+    
+    // Удаляем все cookies (которые можем)
+    document.cookie.split(';').forEach(cookie => {
+      const name = cookie.split('=')[0].trim()
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+    })
   }
 
   if (loading) {

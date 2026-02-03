@@ -29,31 +29,71 @@ export async function getUserFromRequest(request: NextRequest) {
   return user
 }
 
-export function validateContactData(data: any) {
-  const errors: string[] = []
+export function validateContactData(data: any): string[] {
+  const errors: string[] = [];
 
-  // Проверяем, что есть хотя бы одно из полей: email, phone, first_name
-  if (!data.email && !data.phone && !data.first_name) {
-    errors.push('Необходимо указать email, телефон или имя')
+  // Обязательные поля
+  if (!data.first_name || data.first_name.trim() === '') {
+    errors.push('Имя обязательно для заполнения');
   }
 
-  // Проверяем relationship_level (1-10)
-  if (data.relationship_level !== undefined) {
-    const level = parseInt(data.relationship_level)
-    if (isNaN(level) || level < 1 || level > 10) {
-      errors.push('Уровень близости должен быть от 1 до 10')
+  // Проверка email
+  if (data.email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+      errors.push('Некорректный email адрес');
     }
   }
 
-  // Проверяем trust_level (1-10)
-  if (data.trust_level !== undefined) {
-    const level = parseInt(data.trust_level)
-    if (isNaN(level) || level < 1 || level > 10) {
-      errors.push('Уровень доверия должен быть от 1 до 10')
+  // Проверка URL
+  if (data.website) {
+    try {
+      new URL(data.website);
+    } catch {
+      errors.push('Некорректный URL веб-сайта');
     }
   }
 
-  return errors
+  // Проверка уровней отношений и доверия
+  if (data.relationship_level) {
+    const level = parseInt(data.relationship_level);
+    if (isNaN(level) || level < 1 || level > 10) {
+      errors.push('Уровень отношений должен быть числом от 1 до 10');
+    }
+  }
+
+  if (data.trust_level) {
+    const level = parseInt(data.trust_level);
+    if (isNaN(level) || level < 1 || level > 10) {
+      errors.push('Уровень доверия должен быть числом от 1 до 10');
+    }
+  }
+
+  // Проверка дат
+  if (data.date_of_birth) {
+    const dob = new Date(data.date_of_birth);
+    if (isNaN(dob.getTime()) || dob > new Date()) {
+      errors.push('Некорректная дата рождения');
+    }
+  }
+
+  if (data.met_date) {
+    const metDate = new Date(data.met_date);
+    if (isNaN(metDate.getTime()) || metDate > new Date()) {
+      errors.push('Некорректная дата знакомства');
+    }
+  }
+
+  // Проверка тегов
+  if (data.tags && Array.isArray(data.tags)) {
+    data.tags.forEach((tagId: string, index: number) => {
+      if (typeof tagId !== 'string' || tagId.trim() === '') {
+        errors.push(`Некорректный ID тега на позиции ${index + 1}`);
+      }
+    });
+  }
+
+  return errors;
 }
 
 export async function createAuditLog(

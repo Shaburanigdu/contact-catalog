@@ -1,7 +1,7 @@
 // app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyPassword, generateTokens, createSession } from '@/lib/auth'  // Импортируем правильную createSession
+import { verifyPassword, generateTokens, createOrResumeSession } from '@/lib/auth'
 import { loginSchema } from '@/lib/validation'
 import { z } from 'zod'
 
@@ -54,12 +54,13 @@ export async function POST(request: NextRequest) {
       username: user.username || undefined
     })
 
-    // СОЗДАЕМ СЕССИЮ С ПРАВИЛЬНОЙ ФУНКЦИЕЙ createSession
-    console.log('📱 Создание сессии...')
+    // СОЗДАЕМ ИЛИ ВОЗОБНОВЛЯЕМ СЕССИЮ
+    console.log('📱 Создание или возобновление сессии...')
     const userAgent = request.headers.get('user-agent') || undefined
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined
-    
-    const session = await createSession(
+
+    // Используем новую функцию вместо createSession
+    const session = await createOrResumeSession(
       user.id,
       tokens.refreshToken,
       userAgent,

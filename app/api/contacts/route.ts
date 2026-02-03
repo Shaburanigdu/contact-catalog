@@ -103,18 +103,31 @@ export async function GET(request: NextRequest) {
           id: true,
           first_name: true,
           last_name: true,
+          middle_name: true,
           nickname: true,
           email: true,
           phone: true,
-          city: true,
+          phone_secondary: true,
+          website: true,
+          gender: true,
+          date_of_birth: true,
           country: true,
+          city: true,
+          address: true,
+          postal_code: true,
           company: true,
           job_title: true,
+          department: true,
           relationship_type: true,
           relationship_level: true,
           trust_level: true,
+          how_we_met: true,
+          met_date: true,
+          met_location: true,
+          personal_notes: true,
+          interests: true,
+          important_facts: true,
           avatar_url: true,
-          date_of_birth: true,
           last_interaction_date: true,
           total_interactions: true,
           created_at: true,
@@ -125,7 +138,8 @@ export async function GET(request: NextRequest) {
                 select: {
                   id: true,
                   name: true,
-                  color: true
+                  color: true,
+                  is_system: true
                 }
               }
             }
@@ -138,7 +152,8 @@ export async function GET(request: NextRequest) {
     // Преобразуем контакты
     const formattedContacts = contacts.map(contact => ({
       ...contact,
-      tags: contact.contact_tags.map(ct => ct.tags)
+      tags: contact.contact_tags.map(ct => ct.tags),
+      contact_tags: undefined // Убираем промежуточное поле
     }))
 
     return NextResponse.json<ApiResponse>({
@@ -162,7 +177,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/contacts - Создать новый контакт
+// POST /api/contacts - Создать новый контакт (полная версия)
 export async function POST(request: NextRequest) {
   try {
     const { user, error } = await authenticateRequest(request)
@@ -185,36 +200,68 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Проверка тегов, если они есть
+    if (body.tags && Array.isArray(body.tags) && body.tags.length > 0) {
+      // Проверяем, что все теги существуют и доступны пользователю
+      const validTags = await prisma.tag.findMany({
+        where: {
+          id: { in: body.tags },
+          OR: [
+            { user_id: user.id },
+            { is_system: true }
+          ]
+        }
+      })
+
+      // Если количество валидных тегов не совпадает с запрошенными
+      if (validTags.length !== body.tags.length) {
+        const invalidTagIds = body.tags.filter((tagId: string) => 
+          !validTags.some(tag => tag.id === tagId)
+        )
+        return NextResponse.json<ApiResponse>(
+          { 
+            success: false, 
+            error: `Некоторые теги не найдены или недоступны: ${invalidTagIds.join(', ')}` 
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Обработка интересов и важных фактов
+    const interests = Array.isArray(body.interests) ? body.interests : [];
+    const important_facts = Array.isArray(body.important_facts) ? body.important_facts : [];
+
     // Подготовка данных
     const contactData: any = {
       user_id: user.id,
       first_name: body.first_name,
-      last_name: body.last_name,
-      middle_name: body.middle_name,
-      nickname: body.nickname,
-      email: body.email,
-      phone: body.phone,
-      phone_secondary: body.phone_secondary,
-      website: body.website,
-      gender: body.gender,
+      last_name: body.last_name || null,
+      middle_name: body.middle_name || null,
+      nickname: body.nickname || null,
+      email: body.email || null,
+      phone: body.phone || null,
+      phone_secondary: body.phone_secondary || null,
+      website: body.website || null,
+      gender: body.gender || null,
       date_of_birth: body.date_of_birth ? new Date(body.date_of_birth) : null,
-      country: body.country,
-      city: body.city,
-      address: body.address,
-      postal_code: body.postal_code,
-      company: body.company,
-      job_title: body.job_title,
-      department: body.department,
+      country: body.country || null,
+      city: body.city || null,
+      address: body.address || null,
+      postal_code: body.postal_code || null,
+      company: body.company || null,
+      job_title: body.job_title || null,
+      department: body.department || null,
       relationship_type: body.relationship_type || 'friend',
       relationship_level: body.relationship_level ? parseInt(body.relationship_level) : null,
       trust_level: body.trust_level ? parseInt(body.trust_level) : null,
-      how_we_met: body.how_we_met,
+      how_we_met: body.how_we_met || null,
       met_date: body.met_date ? new Date(body.met_date) : null,
-      met_location: body.met_location,
-      personal_notes: body.personal_notes,
-      interests: body.interests,
-      important_facts: body.important_facts,
-      avatar_url: body.avatar_url,
+      met_location: body.met_location || null,
+      personal_notes: body.personal_notes || null,
+      interests: interests,
+      important_facts: important_facts,
+      avatar_url: body.avatar_url || null,
     }
 
     // Создаем контакт
@@ -222,16 +269,44 @@ export async function POST(request: NextRequest) {
       data: contactData,
     })
 
-    // Создаем теги если они есть
-    if (body.tags && Array.isArray(body.tags)) {
-      for (const tagId of body.tags) {
-        await prisma.contactTag.create({
-          data: {
-            contact_id: contact.id,
-            tag_id: tagId,
-          },
-        })
+    // Создаем связи с тегами, если они есть
+    if (body.tags && Array.isArray(body.tags) && body.tags.length > 0) {
+      // Используем createMany для эффективности
+      const tagConnections = body.tags.map((tagId: string) => ({
+        contact_id: contact.id,
+        tag_id: tagId,
+      }))
+
+      await prisma.contactTag.createMany({
+        data: tagConnections,
+        skipDuplicates: true
+      })
+    }
+
+    // Получаем созданный контакт с тегами для ответа
+    const createdContact = await prisma.contact.findUnique({
+      where: { id: contact.id },
+      include: {
+        contact_tags: {
+          include: {
+            tags: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                is_system: true
+              }
+            }
+          }
+        }
       }
+    })
+
+    // Преобразуем контакт для ответа
+    const formattedContact = {
+      ...createdContact,
+      tags: createdContact?.contact_tags.map(ct => ct.tags),
+      contact_tags: undefined
     }
 
     // Логируем в аудит
@@ -241,20 +316,40 @@ export async function POST(request: NextRequest) {
       'CONTACT',
       contact.id,
       undefined,
-      contact,
+      contactData,
       request
     )
 
     return NextResponse.json<ApiResponse>(
       { 
         success: true, 
-        data: contact,
+        data: formattedContact,
         message: 'Контакт успешно создан'
       },
       { status: 201 }
     )
   } catch (error) {
     console.error('Failed to create contact:', error)
+    
+    // Проверяем конкретные ошибки Prisma
+    if (error instanceof Error) {
+      // Ошибка уникальности
+      if (error.message.includes('Unique constraint failed')) {
+        return NextResponse.json<ApiResponse>(
+          { success: false, error: 'Контакт с таким email или телефоном уже существует' },
+          { status: 409 }
+        )
+      }
+      
+      // Ошибка валидации
+      if (error.message.includes('Invalid value')) {
+        return NextResponse.json<ApiResponse>(
+          { success: false, error: 'Некорректные данные в одном из полей' },
+          { status: 400 }
+        )
+      }
+    }
+    
     return NextResponse.json<ApiResponse>(
       { success: false, error: 'Ошибка при создании контакта' },
       { status: 500 }
