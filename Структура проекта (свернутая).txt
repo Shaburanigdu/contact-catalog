@@ -1,0 +1,48 @@
+Структура папки: D:\VKR\contact-catalog
+============================================================
+ОСНОВНЫЕ ПАПКИ ПРОЕКТА:
+============================================================
+
+├── app/
+│   └── api
+│   └── dashboard
+│   └── forgot-password
+│   └── globals.css
+│   └── layout.tsx
+│   └── login
+│   └── page.tsx
+│   └── register
+│   └── reset-password
+├── components/
+│   └── contacts
+│   └── ui
+├── hooks/
+│   └── useContacts.ts
+│   └── useSessionCleanup.ts
+│   └── useTokenRefresh.ts
+├── lib/
+│   └── api-client.ts
+│   └── auth.ts
+│   └── init-cleanup.ts
+│   └── logger.ts
+│   └── middleware-auth.ts
+│   └── prisma.ts
+│   └── request-utils.ts
+│   └── session-cleanup.ts
+│   └── utils.ts
+│   └── validation.ts
+├── prisma/
+│   └── migrations
+│   └── schema.prisma
+├── scripts/
+│   └── check-all-tables.js
+│   └── check-dbname.js
+│   └── check-env.js
+│   └── check-jwt.js
+│   └── check-secrets.js
+│   └── debug-login.js
+│   └── debug-sessions.js
+│   └── final-refresh-test.js
+│   └── quick-refresh-test.js
+│   └── refresh-test-with-cookies.js
+│   └── ... и еще 8 файлов

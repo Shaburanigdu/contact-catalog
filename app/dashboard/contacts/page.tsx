@@ -47,8 +47,8 @@ export default function ContactsPage() {
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors p-2 rounded-lg hover:bg-gray-100"
             title="На главную"
           >
-            <Home size={20} />
-            <span className="hidden sm:inline">На главную</span>
+            <Home size={30} />
+            <span className="hidden sm:inline">{/*На главную*/}</span>
           </Link>
           <h1 className="text-2xl md:text-3xl font-bold">Контакты</h1>
         </div>

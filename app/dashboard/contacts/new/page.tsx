@@ -66,7 +66,7 @@ const COLOR_PALETTE = [
   { value: '#F97316', textColor: 'black' },  // orange-500
   { value: '#84CC16', textColor: 'black' },  // lime-500
   { value: '#06B6D4', textColor: 'black' },  // cyan-500
-  { value: '#8B5CF6', textColor: 'white' },  // violet-500
+  { value: '#059669', textColor: 'white' },  // green-600
   { value: '#D946EF', textColor: 'white' },  // fuchsia-500
   { value: '#0EA5E9', textColor: 'white' },  // sky-500
   { value: '#64748B', textColor: 'white' },  // slate-500
@@ -289,8 +289,8 @@ export default function NewContactPage() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors p-2 rounded-lg hover:bg-gray-100"
               title="На главную"
             >
-              <Home size={20} />
-              <span className="hidden sm:inline">На главную</span>
+              <Home size={25} />
+              <span className="hidden sm:inline">{/*На главную*/}</span>
             </Link>
             <Link
               href="/dashboard/contacts"
