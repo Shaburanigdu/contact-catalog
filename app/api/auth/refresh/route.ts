@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     const tokens = await generateTokens(userPayload)
     console.log('✅ Новые токены сгенерированы')
     
-    // 6. ВАЖНО: Обновляем СУЩЕСТВУЮЩУЮ сессию (НЕ создаем новую!)
+    // 6. Обновляем СУЩЕСТВУЮЩУЮ сессию (НЕ создаем новую!)
     const newRefreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10)
     
     await prisma.userSession.update({

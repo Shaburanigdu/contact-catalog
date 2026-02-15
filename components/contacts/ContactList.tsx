@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { RELATIONSHIP_LABELS } from '@/lib/constants';
 import CreateContactModal from '@/components/contacts/CreateContactModal';
 import { useContacts } from '@/hooks/useContacts'
 import { Button } from '@/components/ui/button'
@@ -191,7 +192,7 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
                       {contact.first_name} {contact.last_name}
                     </h3>
                     <p className="text-sm text-gray-500 capitalize">
-                      {contact.relationship_type}
+                      {RELATIONSHIP_LABELS[contact.relationship_type || ''] || contact.relationship_type}
                     </p>
                   </div>
                 </div>

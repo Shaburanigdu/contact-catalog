@@ -120,7 +120,7 @@ export async function createSession(
     console.log(`⚠️  ВНИМАНИЕ: У пользователя уже ${activeSessionsCount} активных сессий!`)
   }
   
-  // ВАЖНО: Для токенов используем bcrypt с помощью import
+  // Для токенов используем bcrypt с помощью import
   const bcrypt = await import('bcryptjs')
   
   // Хэшируем токен с использованием bcrypt
@@ -136,7 +136,7 @@ export async function createSession(
   const session = await prisma.userSession.create({
     data: {
       user_id: userId,
-      refresh_token_hash: refreshTokenHash, // ← Теперь это точно правильный bcrypt хэш!
+      refresh_token_hash: refreshTokenHash, // ОТНЯЛА У МЕНЯ 14 ДНЕЙ ЖИЗНИ
       expires_at: expiresAt,
       user_agent: userAgent,
       ip_address: ipAddress

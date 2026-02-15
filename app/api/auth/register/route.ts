@@ -1,7 +1,7 @@
 // app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { generateTokens, createSession } from '@/lib/auth'  // Импортируем правильную createSession
+import { generateTokens, createSession } from '@/lib/auth'
 import { registerSchema } from '@/lib/validation'
 import { z } from 'zod'
 import * as bcrypt from 'bcryptjs'
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       username: user.username || undefined
     })
 
-    // СОЗДАЕМ СЕССИЮ С ПРАВИЛЬНОЙ ФУНКЦИЕЙ createSession
+    // СОЗДАЕМ СЕССИЮ
     console.log('📱 Создание сессии...')
     const userAgent = request.headers.get('user-agent') || undefined
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined

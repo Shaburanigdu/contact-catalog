@@ -302,6 +302,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6 mb-8">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Быстрые действия</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Добавить контакт – работает */}
               <Link href="/dashboard/contacts/new">
                 <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                   <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mb-3">
@@ -312,16 +313,19 @@ export default function DashboardPage() {
                 </div>
               </Link>
 
-              <Link href="/dashboard/contacts?has_upcoming_events=true">
-                <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mb-3">
-                    <Calendar className="h-5 w-5 text-green-600" />
-                  </div>
-                  <h4 className="font-medium text-gray-900">Предстоящие события</h4>
-                  <p className="text-sm text-gray-600 mt-1">Посмотреть события</p>
+              {/* Предстоящие события – временно отключено */}
+              <div
+                className="p-4 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed opacity-60"
+                onClick={() => alert('Функционал «События» в разработке')}
+              >
+                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mb-3">
+                  <Calendar className="h-5 w-5 text-green-600" />
                 </div>
-              </Link>
+                <h4 className="font-medium text-gray-900">Предстоящие события</h4>
+                <p className="text-sm text-gray-600 mt-1">Скоро появится</p>
+              </div>
 
+              {/* Требуют внимания – фильтр по контактам */}
               <Link href="/dashboard/contacts?last_interaction_days=90">
                 <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                   <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center mb-3">
@@ -332,6 +336,7 @@ export default function DashboardPage() {
                 </div>
               </Link>
 
+              {/* Аналитика – работает (если есть страница) */}
               <Link href="/dashboard/analytics">
                 <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                   <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center mb-3">

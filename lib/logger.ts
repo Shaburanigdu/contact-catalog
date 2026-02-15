@@ -22,7 +22,7 @@ export class CleanupLogger {
     
     console.log(`[${timestamp}] ${message}`, data ? data : '')
     
-    // Если у вас есть таблица cleanupLog, раскомментируйте:
+    // Если верну таблицу cleanupLog, раскомментировать:
     /*
     try {
       await prisma.cleanupLog.create({
@@ -41,7 +41,7 @@ export class CleanupLogger {
   static async getStats(days = 7) {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
     
-    // Если у вас есть таблица cleanupLog, раскомментируйте:
+    // Если верну таблицу cleanupLog, раскомментировать:
     /*
     const logs = await prisma.cleanupLog.findMany({
       where: {

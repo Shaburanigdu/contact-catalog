@@ -30,6 +30,8 @@ contact-catalog/
 │   ├── dashboard/
 │   │   ├── contacts/
 │   │   │   ├── [id]/
+│   │   │   │   └── edit/
+│   │   │   │       └── [...]
 │   │   │   ├── new/
 │   │   │   │   └── page.tsx
 │   │   │   └── page.tsx
@@ -75,4 +77,5 @@ contact-catalog/
 ├── README.md
 ├── tsconfig.json
 ├── vercel.json
+├── Структура проекта (свернутая).txt
 └── Структура проекта (чистая).txt

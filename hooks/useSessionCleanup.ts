@@ -48,7 +48,6 @@ export function useSessionCleanup() {
       cleanupLocalStorage()
       
       // Можно также отправить запрос на сервер для проверки
-      // (опционально, если у вас есть эндпоинт для этого)
       // await api.post('/api/auth/check-sessions')
       
     } catch (error) {

@@ -1,31 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { 
-  authenticateRequest, 
+import {
+  authenticateRequest,
   validateContactData,
   createAuditLog,
-  ApiResponse 
+  ApiResponse
 } from '@/lib/request-utils'
 import { prisma } from '@/lib/prisma'
 
-interface RouteParams {
-  params: {
-    id: string
-  }
-}
-
 // GET /api/contacts/[id] - Получить контакт по ID
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
   try {
+    const resolvedParams = await params
+    const { id } = resolvedParams
+
     const { user, error } = await authenticateRequest(request)
-    
     if (error || !user) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Не авторизован' },
         { status: 401 }
       )
     }
-
-    const { id } = params
 
     const contact = await prisma.contact.findFirst({
       where: {
@@ -52,10 +49,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         reminders: {
           take: 5,
           orderBy: { due_at: 'asc' },
-          where: { 
-            deleted_at: null,
-            status: 'pending'
-          },
+          where: { deleted_at: null, status: 'pending' },
         },
         event_participants: {
           include: {
@@ -68,11 +62,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               },
             },
           },
-          where: {
-            events: {
-              deleted_at: null,
-            },
-          },
+          where: { events: { deleted_at: null } },
           take: 5,
         },
       },
@@ -85,10 +75,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    return NextResponse.json<ApiResponse>({
-      success: true,
-      data: contact,
-    })
+    return NextResponse.json<ApiResponse>({ success: true, data: contact })
   } catch (error) {
     console.error('Failed to fetch contact:', error)
     return NextResponse.json<ApiResponse>(
@@ -99,10 +86,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // PUT /api/contacts/[id] - Обновить контакт
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
   try {
+    const resolvedParams = await params
+    const { id } = resolvedParams
+
+    if (!id) {
+      console.error('ID is missing in params', resolvedParams)
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: 'ID контакта не указан' },
+        { status: 400 }
+      )
+    }
+
     const { user, error } = await authenticateRequest(request)
-    
     if (error || !user) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Не авторизован' },
@@ -110,9 +110,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { id } = params
-
-    // Проверяем существование контакта
     const existingContact = await prisma.contact.findFirst({
       where: {
         id,
@@ -130,7 +127,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const body = await request.json()
 
-    // Валидация данных
+    // Валидация 
     const validationErrors = validateContactData(body)
     if (validationErrors.length > 0) {
       return NextResponse.json<ApiResponse>(
@@ -139,36 +136,58 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Подготовка данных для обновления
+    // Базовое обновление (поля, не требующие специальной обработки)
     const updateData: any = {
-      first_name: body.first_name !== undefined ? body.first_name : existingContact.first_name,
-      last_name: body.last_name !== undefined ? body.last_name : existingContact.last_name,
-      middle_name: body.middle_name !== undefined ? body.middle_name : existingContact.middle_name,
-      nickname: body.nickname !== undefined ? body.nickname : existingContact.nickname,
-      email: body.email !== undefined ? body.email : existingContact.email,
-      phone: body.phone !== undefined ? body.phone : existingContact.phone,
-      phone_secondary: body.phone_secondary !== undefined ? body.phone_secondary : existingContact.phone_secondary,
-      website: body.website !== undefined ? body.website : existingContact.website,
-      gender: body.gender !== undefined ? body.gender : existingContact.gender,
-      date_of_birth: body.date_of_birth !== undefined ? new Date(body.date_of_birth) : existingContact.date_of_birth,
-      country: body.country !== undefined ? body.country : existingContact.country,
-      city: body.city !== undefined ? body.city : existingContact.city,
-      address: body.address !== undefined ? body.address : existingContact.address,
-      postal_code: body.postal_code !== undefined ? body.postal_code : existingContact.postal_code,
-      company: body.company !== undefined ? body.company : existingContact.company,
-      job_title: body.job_title !== undefined ? body.job_title : existingContact.job_title,
-      department: body.department !== undefined ? body.department : existingContact.department,
-      relationship_type: body.relationship_type !== undefined ? body.relationship_type : existingContact.relationship_type,
-      relationship_level: body.relationship_level !== undefined ? parseInt(body.relationship_level) : existingContact.relationship_level,
-      trust_level: body.trust_level !== undefined ? parseInt(body.trust_level) : existingContact.trust_level,
-      how_we_met: body.how_we_met !== undefined ? body.how_we_met : existingContact.how_we_met,
-      met_date: body.met_date !== undefined ? new Date(body.met_date) : existingContact.met_date,
-      met_location: body.met_location !== undefined ? body.met_location : existingContact.met_location,
-      personal_notes: body.personal_notes !== undefined ? body.personal_notes : existingContact.personal_notes,
-      interests: body.interests !== undefined ? body.interests : existingContact.interests,
-      important_facts: body.important_facts !== undefined ? body.important_facts : existingContact.important_facts,
-      avatar_url: body.avatar_url !== undefined ? body.avatar_url : existingContact.avatar_url,
+      first_name: body.first_name ?? existingContact.first_name,
+      last_name: body.last_name ?? existingContact.last_name,
+      middle_name: body.middle_name ?? existingContact.middle_name,
+      nickname: body.nickname ?? existingContact.nickname,
+      email: body.email ?? existingContact.email,
+      phone: body.phone ?? existingContact.phone,
+      phone_secondary: body.phone_secondary ?? existingContact.phone_secondary,
+      website: body.website ?? existingContact.website,
+      gender: body.gender ?? existingContact.gender,
+      country: body.country ?? existingContact.country,
+      city: body.city ?? existingContact.city,
+      address: body.address ?? existingContact.address,
+      postal_code: body.postal_code ?? existingContact.postal_code,
+      company: body.company ?? existingContact.company,
+      job_title: body.job_title ?? existingContact.job_title,
+      department: body.department ?? existingContact.department,
+      relationship_type: body.relationship_type ?? existingContact.relationship_type,
+      how_we_met: body.how_we_met ?? existingContact.how_we_met,
+      met_location: body.met_location ?? existingContact.met_location,
+      personal_notes: body.personal_notes ?? existingContact.personal_notes,
+      interests: body.interests ?? existingContact.interests,
+      important_facts: body.important_facts ?? existingContact.important_facts,
+      avatar_url: body.avatar_url ?? existingContact.avatar_url,
       updated_at: new Date(),
+    }
+
+    // Безопасная обработка дат (пустая строка → null)
+    if (body.date_of_birth !== undefined) {
+      updateData.date_of_birth =
+        body.date_of_birth && body.date_of_birth.trim() !== ''
+          ? new Date(body.date_of_birth)
+          : null
+    }
+
+    if (body.met_date !== undefined) {
+      updateData.met_date =
+        body.met_date && body.met_date.trim() !== ''
+          ? new Date(body.met_date)
+          : null
+    }
+
+    // Безопасная обработка чисел (пустая строка → null)
+    if (body.relationship_level !== undefined) {
+      const val = parseInt(body.relationship_level, 10)
+      updateData.relationship_level = isNaN(val) ? null : val
+    }
+
+    if (body.trust_level !== undefined) {
+      const val = parseInt(body.trust_level, 10)
+      updateData.trust_level = isNaN(val) ? null : val
     }
 
     // Обновляем контакт
@@ -177,25 +196,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       data: updateData,
     })
 
-    // Обновляем теги если они есть
-    if (body.tags && Array.isArray(body.tags)) {
-      // Удаляем старые теги
+    // Обработка тегов (если переданы)
+    if (Array.isArray(body.tags)) {
+      // Удаляем старые связи
       await prisma.contactTag.deleteMany({
         where: { contact_id: id },
       })
 
-      // Добавляем новые теги
+      // Добавляем новые теги (только те, которые принадлежат пользователю)
       for (const tagId of body.tags) {
-        await prisma.contactTag.create({
-          data: {
-            contact_id: id,
-            tag_id: tagId,
-          },
+        const tag = await prisma.tag.findFirst({
+          where: { id: tagId, user_id: user.id },
         })
+        if (tag) {
+          await prisma.contactTag.create({
+            data: {
+              contact_id: id,
+              tag_id: tagId,
+            },
+          })
+        }
       }
     }
 
-    // Логируем в аудит
+    // Аудит
     await createAuditLog(
       user.id,
       'UPDATE',
@@ -209,7 +233,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json<ApiResponse>({
       success: true,
       data: updatedContact,
-      message: 'Контакт успешно обновлен',
+      message: 'Контакт успешно обновлён',
     })
   } catch (error) {
     console.error('Failed to update contact:', error)
@@ -220,11 +244,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/contacts/[id] - Удалить контакт (мягкое удаление)
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+// DELETE /api/contacts/[id] - Мягкое удаление
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
   try {
+    const resolvedParams = await params
+    const { id } = resolvedParams
+
     const { user, error } = await authenticateRequest(request)
-    
     if (error || !user) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Не авторизован' },
@@ -232,9 +261,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { id } = params
-
-    // Проверяем существование контакта
     const existingContact = await prisma.contact.findFirst({
       where: {
         id,
@@ -250,7 +276,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Мягкое удаление
     await prisma.contact.update({
       where: { id },
       data: {
@@ -259,7 +284,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       },
     })
 
-    // Логируем в аудит
     await createAuditLog(
       user.id,
       'DELETE',
@@ -272,7 +296,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json<ApiResponse>({
       success: true,
-      message: 'Контакт успешно удален',
+      message: 'Контакт успешно удалён',
     })
   } catch (error) {
     console.error('Failed to delete contact:', error)

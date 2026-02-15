@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || undefined
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined
 
-    // Используем новую функцию вместо createSession
     const session = await createOrResumeSession(
       user.id,
       tokens.refreshToken,

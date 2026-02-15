@@ -1,4 +1,4 @@
-// lib/api-client.ts - ЗАМЕНИТЕ СОДЕРЖИМОЕ
+// lib/api-client.ts
 const API_BASE_URL = ''
 
 class ApiClient {

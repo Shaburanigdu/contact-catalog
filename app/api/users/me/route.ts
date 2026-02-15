@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     
     console.log('✅ Токен валиден, пользователь:', userPayload.email)
 
-    // Ищем пользователя в базе (с использованием правильных имен полей из схемы Prisma)
+    // Ищем пользователя в базе 
     const userData = await prisma.user.findUnique({
       where: { id: userPayload.id },
       select: {
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         avatar_url: true,       // В схеме есть это поле (String?)
         settings: true,         // В схеме есть это поле (Json?)
         created_at: true,       // В схеме есть это поле (DateTime?)
-        // Дополнительные поля, если нужны:
+        // Дополнительные поля:
         timezone: true,         // String? (default: "UTC")
         language: true,         // String? (default: "ru")
         last_login_at: true,    // DateTime?
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Дополнительно: если нужен метод для обновления данных пользователя
+// Метод для обновления данных пользователя
 export async function PATCH(request: NextRequest) {
   try {
     const accessToken = request.cookies.get('access_token')?.value

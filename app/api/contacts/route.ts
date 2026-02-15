@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { 
-  authenticateRequest, 
+import {
+  authenticateRequest,
   validateContactData,
   createAuditLog,
-  ApiResponse 
+  ApiResponse
 } from '@/lib/request-utils'
 import { prisma } from '@/lib/prisma'
 
@@ -11,7 +11,7 @@ import { prisma } from '@/lib/prisma'
 export async function GET(request: NextRequest) {
   try {
     const { user, error } = await authenticateRequest(request)
-    
+
     if (error || !user) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Не авторизован' },
@@ -30,14 +30,22 @@ export async function GET(request: NextRequest) {
     const relationship_type = searchParams.get('relationship_type') || undefined
     const tag = searchParams.get('tag') || undefined
     const has_upcoming_events = searchParams.get('has_upcoming_events') === 'true'
-    const last_interaction_days = searchParams.get('last_interaction_days')
+    const lastInteractionDays = searchParams.get('last_interaction_days')
 
-    // Построение фильтров
     const where: any = {
       user_id: user.id,
       deleted_at: null,
     }
 
+    // Массив дополнительных условий для AND (используется для сложных фильтров)
+    const andConditions: any[] = []
+
+    // Простые равенства
+    if (city) where.city = city
+    if (country) where.country = country
+    if (relationship_type) where.relationship_type = relationship_type
+
+    // Поиск по тексту (OR)
     if (search) {
       where.OR = [
         { first_name: { contains: search, mode: 'insensitive' } },
@@ -49,18 +57,7 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    if (city) {
-      where.city = city
-    }
-
-    if (country) {
-      where.country = country
-    }
-
-    if (relationship_type) {
-      where.relationship_type = relationship_type
-    }
-
+    // Фильтр по тегу (связь)
     if (tag) {
       where.contact_tags = {
         some: {
@@ -71,28 +68,54 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (last_interaction_days) {
-      const daysAgo = new Date()
-      daysAgo.setDate(daysAgo.getDate() - parseInt(last_interaction_days))
-      where.last_interaction_date = {
-        lt: daysAgo
-      }
-    }
-
-    // Если нужны контакты с предстоящими событиями
+    // Фильтр "предстоящие события"
     if (has_upcoming_events) {
       where.event_participants = {
         some: {
           event: {
-            start_at: {
-              gt: new Date()
-            },
+            start_at: { gt: new Date() },
             deleted_at: null
           }
         }
       }
     }
 
+    // *** фильтр "давно не общались" (включает NULL) ***
+    if (lastInteractionDays && !isNaN(Number(lastInteractionDays))) {
+      const days = Number(lastInteractionDays)
+      const cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - days)
+
+      andConditions.push({
+        OR: [
+          { last_interaction_date: null },
+          { last_interaction_date: { lt: cutoffDate } }
+        ]
+      })
+    }
+
+    // Если есть дополнительные AND-условия, перестраиваем весь where в AND
+    if (andConditions.length > 0) {
+      // Извлекаем все простые условия из where
+      const { user_id, deleted_at, ...restWhere } = where
+
+      // Базовые условия (обязательные)
+      const baseConditions = [
+        { user_id },
+        { deleted_at },
+        ...Object.entries(restWhere).map(([key, value]) => ({ [key]: value }))
+      ]
+
+      // Собираем всё в AND
+      where.AND = [...baseConditions, ...andConditions]
+
+      // Удаляем старые плоские поля, чтобы Prisma использовала только AND
+      delete where.user_id
+      delete where.deleted_at
+      Object.keys(restWhere).forEach(key => delete where[key])
+    }
+
+    // Выполняем запросы
     const [contacts, total] = await Promise.all([
       prisma.contact.findMany({
         where,
@@ -153,7 +176,7 @@ export async function GET(request: NextRequest) {
     const formattedContacts = contacts.map(contact => ({
       ...contact,
       tags: contact.contact_tags.map(ct => ct.tags),
-      contact_tags: undefined // Убираем промежуточное поле
+      contact_tags: undefined
     }))
 
     return NextResponse.json<ApiResponse>({
@@ -181,7 +204,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { user, error } = await authenticateRequest(request)
-    
+
     if (error || !user) {
       return NextResponse.json<ApiResponse>(
         { success: false, error: 'Не авторизован' },
@@ -202,7 +225,6 @@ export async function POST(request: NextRequest) {
 
     // Проверка тегов, если они есть
     if (body.tags && Array.isArray(body.tags) && body.tags.length > 0) {
-      // Проверяем, что все теги существуют и доступны пользователю
       const validTags = await prisma.tag.findMany({
         where: {
           id: { in: body.tags },
@@ -213,26 +235,23 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Если количество валидных тегов не совпадает с запрошенными
       if (validTags.length !== body.tags.length) {
-        const invalidTagIds = body.tags.filter((tagId: string) => 
+        const invalidTagIds = body.tags.filter((tagId: string) =>
           !validTags.some(tag => tag.id === tagId)
         )
         return NextResponse.json<ApiResponse>(
-          { 
-            success: false, 
-            error: `Некоторые теги не найдены или недоступны: ${invalidTagIds.join(', ')}` 
+          {
+            success: false,
+            error: `Некоторые теги не найдены или недоступны: ${invalidTagIds.join(', ')}`
           },
           { status: 400 }
         )
       }
     }
 
-    // Обработка интересов и важных фактов
-    const interests = Array.isArray(body.interests) ? body.interests : [];
-    const important_facts = Array.isArray(body.important_facts) ? body.important_facts : [];
+    const interests = Array.isArray(body.interests) ? body.interests : []
+    const important_facts = Array.isArray(body.important_facts) ? body.important_facts : []
 
-    // Подготовка данных
     const contactData: any = {
       user_id: user.id,
       first_name: body.first_name,
@@ -264,14 +283,11 @@ export async function POST(request: NextRequest) {
       avatar_url: body.avatar_url || null,
     }
 
-    // Создаем контакт
     const contact = await prisma.contact.create({
       data: contactData,
     })
 
-    // Создаем связи с тегами, если они есть
     if (body.tags && Array.isArray(body.tags) && body.tags.length > 0) {
-      // Используем createMany для эффективности
       const tagConnections = body.tags.map((tagId: string) => ({
         contact_id: contact.id,
         tag_id: tagId,
@@ -283,7 +299,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Получаем созданный контакт с тегами для ответа
     const createdContact = await prisma.contact.findUnique({
       where: { id: contact.id },
       include: {
@@ -302,14 +317,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Преобразуем контакт для ответа
     const formattedContact = {
       ...createdContact,
       tags: createdContact?.contact_tags.map(ct => ct.tags),
       contact_tags: undefined
     }
 
-    // Логируем в аудит
     await createAuditLog(
       user.id,
       'CREATE',
@@ -321,8 +334,8 @@ export async function POST(request: NextRequest) {
     )
 
     return NextResponse.json<ApiResponse>(
-      { 
-        success: true, 
+      {
+        success: true,
         data: formattedContact,
         message: 'Контакт успешно создан'
       },
@@ -330,18 +343,15 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error('Failed to create contact:', error)
-    
-    // Проверяем конкретные ошибки Prisma
+
     if (error instanceof Error) {
-      // Ошибка уникальности
       if (error.message.includes('Unique constraint failed')) {
         return NextResponse.json<ApiResponse>(
           { success: false, error: 'Контакт с таким email или телефоном уже существует' },
           { status: 409 }
         )
       }
-      
-      // Ошибка валидации
+
       if (error.message.includes('Invalid value')) {
         return NextResponse.json<ApiResponse>(
           { success: false, error: 'Некорректные данные в одном из полей' },
@@ -349,7 +359,7 @@ export async function POST(request: NextRequest) {
         )
       }
     }
-    
+
     return NextResponse.json<ApiResponse>(
       { success: false, error: 'Ошибка при создании контакта' },
       { status: 500 }

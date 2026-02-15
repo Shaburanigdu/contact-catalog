@@ -47,13 +47,3 @@ export async function verifyRefreshTokenForMiddleware(token: string): Promise<Us
     throw new Error('Invalid or expired refresh token')
   }
 }
-
-// УДАЛЯЕМ следующие функции, так как они не работают в middleware:
-// - getAuthCookies()
-// - setAuthCookiesForMiddleware()
-// - clearAuthCookiesForMiddleware()
-
-// Вместо них используйте в middleware:
-// - request.cookies.get('access_token')
-// - response.cookies.set(...)
-// - response.cookies.delete('access_token')
