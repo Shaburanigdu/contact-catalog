@@ -102,12 +102,19 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
             Всего контактов: {pagination.total}
           </p>
         </div>
-        <Link href="/dashboard/contacts/new">
-          <Button>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Добавить контакт
-          </Button>
-        </Link>
+        <div className="flex space-x-2">
+          <Link href="/dashboard/contacts">
+            <Button variant="outline">
+              Все контакты
+            </Button>
+          </Link>
+          <Link href="/dashboard/contacts/new">
+            <Button>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Добавить контакт
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Фильтры */}

@@ -15,6 +15,7 @@
 │   └── reset-password
 ├── components/
 │   └── contacts
+│   └── layout
 │   └── ui
 ├── hooks/
 │   └── useContacts.ts
@@ -23,6 +24,7 @@
 ├── lib/
 │   └── api-client.ts
 │   └── auth.ts
+│   └── constants.ts
 │   └── init-cleanup.ts
 │   └── logger.ts
 │   └── middleware-auth.ts
@@ -30,7 +32,7 @@
 │   └── request-utils.ts
 │   └── session-cleanup.ts
 │   └── utils.ts
-│   └── validation.ts
+│   └── ... и еще 1 файлов
 ├── prisma/
 │   └── migrations
 │   └── schema.prisma

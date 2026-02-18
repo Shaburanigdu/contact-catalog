@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth';
 import { ContactList } from '@/components/contacts/ContactList'
-import { api } from '@/lib/api-client' // Импортируем новый api-клиент
-import { useTokenRefresh } from '@/hooks/useTokenRefresh' // Импортируем хук
+import { api } from '@/lib/api-client'
+import { useTokenRefresh } from '@/hooks/useTokenRefresh'
 import {
   Users,
   Calendar,
@@ -17,231 +18,168 @@ import {
   MapPin,
   Settings,
   LogOut,
+  PlusCircle,
+  HeartHandshake,
 } from 'lucide-react'
 
 interface DashboardStats {
   totalContacts?: number
   contactsByCity?: Array<{ city: string; count: number }>
-  recentContacts?: Array<{ id: string; first_name: string; last_name?: string; avatar_url?: string }>
   contactsWithoutInteraction?: number
 }
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { logout } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({})
-  const [loading, setLoading] = useState(true)
-  
-  // Используем хук для периодического обновления токена
+  const [statsLoading, setStatsLoading] = useState(true)
+
   useTokenRefresh()
 
   useEffect(() => {
-    fetchDashboardData()
+    fetchStats()
   }, [])
 
-  const fetchDashboardData = async () => {
+  const fetchStats = async () => {
     try {
-      const [contactsResponse, statsResponse] = await Promise.all([
-        api.get('/api/contacts?limit=5'),
-        api.get('/api/contacts/stats'),
-      ])
-
-      if (contactsResponse.ok) {
-        const contactsData = await contactsResponse.json()
-        // Обрабатываем данные контактов (если нужно)
-        if (contactsData.data) {
-          // Сохраняем данные, если они нужны
-        }
-      }
-
+      const statsResponse = await api.get('/api/contacts/stats')
       if (statsResponse.ok) {
         const statsData = await statsResponse.json()
         setStats(statsData.data || {})
       }
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error)
-      
-      // Если ошибка авторизации, middleware уже перенаправит на логин
-      if (error instanceof Error && error.message === 'Authentication failed') {
-        console.log('❌ Ошибка авторизации, перенаправление на логин...')
-        return
-      }
-      
-      // Обработка других ошибок
+      console.error('Failed to fetch dashboard stats:', error)
     } finally {
-      setLoading(false)
+      setStatsLoading(false)
     }
-  }
-
-  const handleLogout = async () => {
-    try {
-      console.log('🚪 Выход из системы и очистка сессий...');
-      
-      // 1. Очищаем локальное хранилище с помощью утилиты
-      cleanupClientStorage()
-      
-      // 2. Отправляем запрос на сервер для удаления токена и сессии
-      const response = await api.post('/api/auth/logout', {})
-      const data = await response.json();
-      
-      if (response.ok) {
-        console.log('✅ Выход успешен, сессии очищены');
-        
-        // 3. Дополнительно вызываем очистку на сервере
-        try {
-          await api.post('/api/auth/cleanup', {}, {
-            headers: {
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_CLEANUP_SECRET}`
-            }
-          })
-        } catch (cleanupError) {
-          console.log('⚠️ Очистка сессий на сервере не удалась, но выход продолжается')
-        }
-        
-        // 4. Принудительно обновляем страницу
-        window.location.href = '/login';
-      } else {
-        console.error('❌ Ошибка выхода:', data.error);
-        alert('Ошибка при выходе из системы');
-      }
-    } catch (error) {
-      console.error('❌ Ошибка при выходе:', error);
-      // Даже при ошибке перенаправляем на логин
-      window.location.href = '/login';
-    }
-  }
-
-  // Утилита для очистки клиентского хранилища
-  const cleanupClientStorage = () => {
-    if (typeof window === 'undefined') return
-    
-    // Очищаем все auth-ключи из localStorage
-    const authKeys = Object.keys(localStorage).filter(key => 
-      key.includes('auth') || 
-      key.includes('token') || 
-      key.includes('session') ||
-      key.includes('user_')
-    )
-    
-    authKeys.forEach(key => {
-      localStorage.removeItem(key)
-    })
-    
-    // Очищаем sessionStorage
-    sessionStorage.clear()
-    
-    // Удаляем все cookies (которые можем)
-    document.cookie.split(';').forEach(cookie => {
-      const name = cookie.split('=')[0].trim()
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-    })
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-gray-900">Contact Catalog</h1>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-full hover:bg-gray-100">
-                <Bell className="h-5 w-5 text-gray-600" />
-              </button>
-              <button className="p-2 rounded-full hover:bg-gray-100">
-                <Settings className="h-5 w-5 text-gray-600" />
-              </button>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                className="flex items-center space-x-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Выйти</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
 
+      {/* Основной контент (без изменений, как в предыдущей версии) */}
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
-          {/* Заголовок и приветствие */}
+          {/* Заголовок страницы */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Дашборд</h1>
             <p className="text-gray-600 mt-2">Обзор ваших контактов и активности</p>
           </div>
 
-          {/* Карточки статистики */}
+          {/* Статистика (скелетон) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Всего контактов</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {stats.totalContacts || 0}
-                  </p>
+            {statsLoading ? (
+              [...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/3"></div>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-blue-600" />
+              ))
+            ) : (
+              <>
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Всего контактов</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalContacts || 0}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Нуждаются во внимании</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {stats.contactsWithoutInteraction || 0}
-                  </p>
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Нуждаются во внимании</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-2">{stats.contactsWithoutInteraction || 0}</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                      <Bell className="h-6 w-6 text-yellow-600" />
+                    </div>
+                  </div>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <Bell className="h-6 w-6 text-yellow-600" />
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Предстоящие события</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Предстоящие события</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                      <Calendar className="h-6 w-6 text-green-600" />
+                    </div>
+                  </div>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Активность</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Активность</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+                    </div>
+                    <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+                      <Activity className="h-6 w-6 text-purple-600" />
+                    </div>
+                  </div>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                  <Activity className="h-6 w-6 text-purple-600" />
+              </>
+            )}
+          </div>
+
+          {/* Контакты */}
+          <div className="mb-8">
+            <ContactList limit={6} showFilters={false} />
+          </div>
+
+          {/* Быстрые действия */}
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Быстрые действия</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link href="/dashboard/contacts/new">
+                <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                    <UserPlus className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900">Добавить контакт</h4>
+                  <p className="text-sm text-gray-600 mt-1">Создать новый контакт</p>
                 </div>
+              </Link>
+
+              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed opacity-60">
+                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mb-3">
+                  <Calendar className="h-5 w-5 text-green-600" />
+                </div>
+                <h4 className="font-medium text-gray-900">Предстоящие события</h4>
+                <p className="text-sm text-gray-600 mt-1">Скоро появится</p>
               </div>
+
+              <Link href="/dashboard/contacts?last_interaction_days=90">
+                <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center mb-3">
+                    <Bell className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900">Требуют внимания</h4>
+                  <p className="text-sm text-gray-600 mt-1">Не общались более 3 месяцев</p>
+                </div>
+              </Link>
+
+              <Link href="/dashboard/analytics">
+                <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center mb-3">
+                    <TrendingUp className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900">Аналитика</h4>
+                  <p className="text-sm text-gray-600 mt-1">Статистика и отчеты</p>
+                </div>
+              </Link>
             </div>
           </div>
 
-          {/* Распределение по городам */}
-          {stats.contactsByCity && stats.contactsByCity.length > 0 && (
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
+          {/* Города */}
+          {!statsLoading && stats.contactsByCity && stats.contactsByCity.length > 0 && (
+            <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Контакты по городам</h3>
               <div className="space-y-4">
                 {stats.contactsByCity.map((item, index) => (
@@ -256,103 +194,6 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-
-          {/* Последние контакты */}
-          {stats.recentContacts && stats.recentContacts.length > 0 && (
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Последние контакты</h3>
-                <Link href="/dashboard/contacts">
-                  <Button variant="outline">Все контакты</Button>
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {stats.recentContacts.map((contact) => (
-                  <div key={contact.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      {contact.avatar_url ? (
-                        <img
-                          src={contact.avatar_url}
-                          alt={`${contact.first_name} ${contact.last_name}`}
-                          className="h-10 w-10 rounded-full"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-gray-400" />
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {contact.first_name} {contact.last_name}
-                        </p>
-                      </div>
-                    </div>
-                    <Link href={`/dashboard/contacts/${contact.id}`}>
-                      <Button variant="ghost" size="sm">
-                        Просмотр
-                      </Button>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Быстрые действия */}
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Быстрые действия</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Добавить контакт – работает */}
-              <Link href="/dashboard/contacts/new">
-                <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                    <UserPlus className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <h4 className="font-medium text-gray-900">Добавить контакт</h4>
-                  <p className="text-sm text-gray-600 mt-1">Создать новый контакт</p>
-                </div>
-              </Link>
-
-              {/* Предстоящие события – временно отключено */}
-              <div
-                className="p-4 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed opacity-60"
-                onClick={() => alert('Функционал «События» в разработке')}
-              >
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mb-3">
-                  <Calendar className="h-5 w-5 text-green-600" />
-                </div>
-                <h4 className="font-medium text-gray-900">Предстоящие события</h4>
-                <p className="text-sm text-gray-600 mt-1">Скоро появится</p>
-              </div>
-
-              {/* Требуют внимания – фильтр по контактам */}
-              <Link href="/dashboard/contacts?last_interaction_days=90">
-                <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center mb-3">
-                    <Bell className="h-5 w-5 text-yellow-600" />
-                  </div>
-                  <h4 className="font-medium text-gray-900">Требуют внимания</h4>
-                  <p className="text-sm text-gray-600 mt-1">Не общались более 3 месяцев</p>
-                </div>
-              </Link>
-
-              {/* Аналитика – работает (если есть страница) */}
-              <Link href="/dashboard/analytics">
-                <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center mb-3">
-                    <TrendingUp className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <h4 className="font-medium text-gray-900">Аналитика</h4>
-                  <p className="text-sm text-gray-600 mt-1">Статистика и отчеты</p>
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          {/* Последние контакты (полный список) */}
-          <div className="mb-8">
-            <ContactList limit={6} showFilters={false} />
-          </div>
         </div>
       </div>
     </div>

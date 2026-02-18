@@ -30,11 +30,13 @@ contact-catalog/
 │   ├── dashboard/
 │   │   ├── contacts/
 │   │   │   ├── [id]/
-│   │   │   │   └── edit/
-│   │   │   │       └── [...]
+│   │   │   │   ├── edit/
+│   │   │   │   │   ├── [...]
+│   │   │   │   └── page.tsx
 │   │   │   ├── new/
 │   │   │   │   └── page.tsx
 │   │   │   └── page.tsx
+│   │   ├── layout.tsx
 │   │   └── page.tsx
 │   ├── forgot-password/
 │   │   └── page.tsx
@@ -51,10 +53,18 @@ contact-catalog/
 │   ├── contacts/
 │   │   ├── ContactList.tsx
 │   │   └── CreateContactModal.tsx
+│   ├── layout/
+│   │   └── Header.tsx
 │   └── ui/
+│       ├── badge.tsx
 │       ├── button.tsx
 │       ├── card.tsx
+│       ├── command.tsx
+│       ├── dialog.tsx
 │       ├── input.tsx
+│       ├── multi-select.tsx
+│       ├── popover.tsx
+│       ├── select.tsx
 │       └── toast.tsx
 ├── hooks/
 ├── lib/
@@ -69,10 +79,13 @@ contact-catalog/
 │       └── 2026/
 │           └── 02/
 │               ├── 4f6c09f4-4f60-4d08-8c23-3f48a338033c.png
-│               └── thumb_4f6c09f4-4f60-4d08-8c23-3f48a338033c.png
+│               ├── b3719bb1-7134-406e-b445-81bff8757ce8.png
+│               ├── thumb_4f6c09f4-4f60-4d08-8c23-3f48a338033c.png
+│               └── thumb_b3719bb1-7134-406e-b445-81bff8757ce8.png
 ├── scripts/
 ├── .env
 ├── .gitignore
+├── components.json
 ├── package-lock.json
 ├── README.md
 ├── tsconfig.json

@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
     const city = searchParams.get('city') || undefined
     const country = searchParams.get('country') || undefined
     const relationship_type = searchParams.get('relationship_type') || undefined
-    const tag = searchParams.get('tag') || undefined
+    const tagName = searchParams.get('tag') || undefined
+    const tagIds = searchParams.get('tagIds')?.split(',').filter(Boolean) || undefined
     const has_upcoming_events = searchParams.get('has_upcoming_events') === 'true'
     const lastInteractionDays = searchParams.get('last_interaction_days')
 
@@ -41,7 +42,9 @@ export async function GET(request: NextRequest) {
     const andConditions: any[] = []
 
     // Простые равенства
-    if (city) where.city = city
+    if (city) {
+      where.city = { contains: city, mode: 'insensitive' };
+    }
     if (country) where.country = country
     if (relationship_type) where.relationship_type = relationship_type
 
@@ -57,13 +60,18 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Фильтр по тегу (связь)
-    if (tag) {
+    // Фильтр по тегам (приоритет у tagIds)
+    if (tagIds && tagIds.length > 0) {
       where.contact_tags = {
         some: {
-          tag: {
-            name: tag
-          }
+          tag_id: { in: tagIds }
+        }
+      }
+    } else if (tagName) {
+      // старый вариант (по имени) – для обратной совместимости
+      where.contact_tags = {
+        some: {
+          tag: { name: tagName }
         }
       }
     }
