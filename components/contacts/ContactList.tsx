@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { RELATIONSHIP_LABELS } from '@/lib/constants';
-import CreateContactModal from '@/components/contacts/CreateContactModal';
+import { useSearchParams } from 'next/navigation'
+import { RELATIONSHIP_LABELS } from '@/lib/constants'
 import { useContacts } from '@/hooks/useContacts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,13 +19,32 @@ import {
   Calendar,
 } from 'lucide-react'
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+
 interface ContactListProps {
   limit?: number
   showFilters?: boolean
+  onContactDeleted?: () => void
 }
 
-export function ContactList({ limit = 20, showFilters = true }: ContactListProps) {
-  const { fetchContacts, loading, error } = useContacts()
+export function ContactList({ limit = 20, showFilters = true, onContactDeleted }: ContactListProps) {
+  const { fetchContacts, loading, error, deleteContact } = useContacts()
+  const searchParams = useSearchParams()
   const [contacts, setContacts] = useState<any[]>([])
   const [pagination, setPagination] = useState({ page: 1, total: 0, pages: 1 })
   const [filters, setFilters] = useState({
@@ -33,6 +52,27 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
     city: '',
     relationship_type: '',
   })
+  const [contactToDelete, setContactToDelete] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+  // Синхронизация с параметром city в URL
+  useEffect(() => {
+    const cityFromUrl = searchParams.get('city')
+    if (cityFromUrl) {
+      setFilters({
+        search: '',
+        city: cityFromUrl,
+        relationship_type: '',
+      })
+    } else {
+      setFilters(prev => ({ ...prev, city: '' }))
+    }
+  }, [searchParams])
+
+  // Загрузка контактов при изменении фильтра города
+  useEffect(() => {
+    loadContacts(1)
+  }, [filters.city])
 
   const loadContacts = async (page = 1) => {
     const result = await fetchContacts({
@@ -47,10 +87,6 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
     }
   }
 
-  useEffect(() => {
-    loadContacts()
-  }, [])
-
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
   }
@@ -63,6 +99,20 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
     if (page >= 1 && page <= pagination.pages) {
       loadContacts(page)
     }
+  }
+
+  const handleDeleteContact = async (contactId: string) => {
+    const success = await deleteContact(contactId)
+    if (success) {
+      loadContacts(pagination.page)
+      if (onContactDeleted) {
+        onContactDeleted()
+      }
+    } else {
+      alert('Не удалось удалить контакт')
+    }
+    setDeleteDialogOpen(false)
+    setContactToDelete(null)
   }
 
   if (loading && contacts.length === 0) {
@@ -98,15 +148,11 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Контакты</h2>
-          <p className="text-gray-600">
-            Всего контактов: {pagination.total}
-          </p>
+          <p className="text-gray-600">Всего контактов: {pagination.total}</p>
         </div>
         <div className="flex space-x-2">
           <Link href="/dashboard/contacts">
-            <Button variant="outline">
-              Все контакты
-            </Button>
+            <Button variant="outline">Все контакты</Button>
           </Link>
           <Link href="/dashboard/contacts/new">
             <Button>
@@ -180,7 +226,7 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
         {contacts.map((contact) => (
           <div key={contact.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
             <div className="p-6">
-              {/* Заголовок карточки */}
+              {/* Заголовок карточки с меню */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   {contact.avatar_url ? (
@@ -203,9 +249,29 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
                     </p>
                   </div>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600">
-                  <MoreVertical className="h-5 w-5" />
-                </button>
+
+                {/* Выпадающее меню действий */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <MoreVertical className="h-5 w-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link href={`/dashboard/contacts/${contact.id}/edit`}>Редактировать</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => {
+                        setContactToDelete(contact.id)
+                        setDeleteDialogOpen(true)
+                      }}
+                    >
+                      Удалить
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Информация о контакте */}
@@ -279,7 +345,7 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
                 )}
               </div>
 
-              {/* Кнопки действий */}
+              {/* Кнопки действий (быстрый просмотр и редактирование) */}
               <div className="mt-6 flex space-x-2">
                 <Link href={`/dashboard/contacts/${contact.id}`} className="flex-1">
                   <Button variant="outline" className="w-full">
@@ -328,7 +394,7 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
           >
             Назад
           </Button>
-          
+
           <div className="flex items-center space-x-1">
             {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
               let pageNum
@@ -341,11 +407,11 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
               } else {
                 pageNum = pagination.page - 2 + i
               }
-              
+
               return (
                 <Button
                   key={pageNum}
-                  variant={pagination.page === pageNum ? "default" : "outline"}
+                  variant={pagination.page === pageNum ? 'default' : 'outline'}
                   onClick={() => handlePageChange(pageNum)}
                   className="min-w-[40px]"
                 >
@@ -354,7 +420,7 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
               )
             })}
           </div>
-          
+
           <Button
             variant="outline"
             onClick={() => handlePageChange(pagination.page + 1)}
@@ -364,6 +430,27 @@ export function ContactList({ limit = 20, showFilters = true }: ContactListProps
           </Button>
         </div>
       )}
+
+      {/* Диалог подтверждения удаления */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Контакт будет перемещён в корзину (мягкое удаление).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => contactToDelete && handleDeleteContact(contactToDelete)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

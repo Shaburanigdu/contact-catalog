@@ -200,7 +200,7 @@ export default function ContactsPage({
         <div className="w-full">
           <label className="text-sm font-medium mb-1 block">Поиск</label>
           <Input
-            placeholder="Имя, email, компания..."
+            placeholder="Имя, email, компания, псевдоним..."
             value={filters.search}
             onChange={(e) => handleFilterChange('search', e.target.value)}
           />

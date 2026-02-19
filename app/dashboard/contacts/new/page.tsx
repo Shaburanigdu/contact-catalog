@@ -3,16 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  ArrowLeft, 
-  Save, 
-  Loader2, 
-  Home, 
-  X, 
-  Plus, 
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Home,
+  X,
+  Plus,
   Upload,
   Tag as TagIcon,
-  Palette
+  Palette,
+  Settings,        // <-- добавлен импорт
 } from 'lucide-react';
 
 interface Tag {
@@ -611,7 +612,16 @@ export default function NewContactPage() {
 
         {/* Теги */}
         <div>
-          <h3 className="text-lg font-medium mb-4">Теги</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium">Теги</h3>
+            <Link
+              href="/dashboard/tags"
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            >
+              <Settings className="h-4 w-4" />
+              Управление тегами
+            </Link>
+          </div>
           <div className="mb-4">
             <div className="flex flex-wrap gap-2 mb-3">
               {formData.tags.map(tagId => {

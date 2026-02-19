@@ -54,10 +54,13 @@ export default function DashboardPage() {
     }
   }
 
+  // Функция для обновления статистики после удаления контакта
+  const handleContactDeleted = () => {
+    fetchStats()
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* Основной контент (без изменений, как в предыдущей версии) */}
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
           {/* Заголовок страницы */}
@@ -130,7 +133,7 @@ export default function DashboardPage() {
 
           {/* Контакты */}
           <div className="mb-8">
-            <ContactList limit={6} showFilters={false} />
+            <ContactList limit={6} showFilters={false} onContactDeleted={handleContactDeleted} />
           </div>
 
           {/* Быстрые действия */}
@@ -183,13 +186,17 @@ export default function DashboardPage() {
               <h3 className="text-lg font-medium text-gray-900 mb-4">Контакты по городам</h3>
               <div className="space-y-4">
                 {stats.contactsByCity.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
+                  <Link
+                    key={index}
+                    href={`/dashboard/contacts?city=${encodeURIComponent(item.city)}`}
+                    className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                  >
                     <div className="flex items-center">
                       <MapPin className="h-5 w-5 text-gray-400 mr-2" />
                       <span className="text-gray-700">{item.city}</span>
                     </div>
                     <span className="font-medium">{item.count}</span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

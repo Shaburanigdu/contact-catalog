@@ -127,7 +127,7 @@ export async function PUT(
 
     const body = await request.json()
 
-    // Валидация 
+    // Валидация
     const validationErrors = validateContactData(body)
     if (validationErrors.length > 0) {
       return NextResponse.json<ApiResponse>(
@@ -203,10 +203,16 @@ export async function PUT(
         where: { contact_id: id },
       })
 
-      // Добавляем новые теги (только те, которые принадлежат пользователю)
+      // Добавляем новые теги (теги, которые принадлежат пользователю ИЛИ являются системными)
       for (const tagId of body.tags) {
         const tag = await prisma.tag.findFirst({
-          where: { id: tagId, user_id: user.id },
+          where: {
+            id: tagId,
+            OR: [
+              { user_id: user.id },
+              { is_system: true }
+            ]
+          },
         })
         if (tag) {
           await prisma.contactTag.create({

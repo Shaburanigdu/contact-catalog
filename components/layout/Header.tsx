@@ -4,7 +4,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Bell, Settings, LogOut, HeartHandshake } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Bell, Settings, LogOut, HeartHandshake, Tag } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -32,9 +38,24 @@ export function Header() {
               <Bell className="h-5 w-5 text-gray-600" />
               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
             </button>
-            <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-              <Settings className="h-5 w-5 text-gray-600" />
-            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                  <Settings className="h-5 w-5 text-gray-600" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/tags" className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Управление тегами
+                  </Link>
+                </DropdownMenuItem>
+                {/* Можно добавить другие пункты настроек */}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               onClick={logout}
               variant="ghost"

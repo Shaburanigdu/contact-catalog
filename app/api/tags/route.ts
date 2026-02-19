@@ -1,5 +1,3 @@
-//app/api/tags/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
 import { 
   authenticateRequest, 
@@ -8,7 +6,6 @@ import {
 } from '@/lib/request-utils'
 import { prisma } from '@/lib/prisma'
 
-// GET /api/tags - Получить теги пользователя
 export async function GET(request: NextRequest) {
   try {
     const { user, error } = await authenticateRequest(request)
@@ -20,6 +17,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Получаем все теги, доступные пользователю (свои + системные)
     const tags = await prisma.tag.findMany({
       where: {
         OR: [
@@ -28,14 +26,43 @@ export async function GET(request: NextRequest) {
         ],
       },
       orderBy: [
-        { is_system: 'desc' },
-        { created_at: 'desc' }
+        { is_system: 'asc' },   // сначала пользовательские (false), потом системные (true)
+        { name: 'asc' },        // внутри каждой группы по алфавиту
       ],
     })
 
+    // Получаем количество использований каждого тега у текущего пользователя
+    const tagIds = tags.map(t => t.id)
+    let usageCounts: Record<string, number> = {}
+    if (tagIds.length > 0) {
+      const counts = await prisma.contactTag.groupBy({
+        by: ['tag_id'],
+        where: {
+          tag_id: { in: tagIds },
+          contacts: {
+            user_id: user.id,
+            deleted_at: null,
+          }
+        },
+        _count: {
+          tag_id: true,
+        }
+      })
+      usageCounts = counts.reduce((acc, item) => {
+        acc[item.tag_id] = item._count.tag_id
+        return acc
+      }, {} as Record<string, number>)
+    }
+
+    // Добавляем _count к каждому тегу
+    const tagsWithCount = tags.map(tag => ({
+      ...tag,
+      _count: { contact_tags: usageCounts[tag.id] || 0 }
+    }))
+
     return NextResponse.json<ApiResponse>({
       success: true,
-      data: { tags },
+      data: { tags: tagsWithCount },
     })
   } catch (error) {
     console.error('Failed to fetch tags:', error)
@@ -46,7 +73,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/tags - Создать новый тег
 export async function POST(request: NextRequest) {
   try {
     const { user, error } = await authenticateRequest(request)
