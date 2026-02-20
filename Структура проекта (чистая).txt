@@ -7,7 +7,6 @@ contact-catalog/
 ├── app/
 │   ├── api/
 │   │   ├── auth/
-│   │   │   ├── cleanup/
 │   │   │   ├── forgot-password/
 │   │   │   ├── login/
 │   │   │   ├── logout/
@@ -24,6 +23,7 @@ contact-catalog/
 │   │   ├── forgot-password/
 │   │   ├── reset-password/
 │   │   ├── tags/
+│   │   │   └── [id]/
 │   │   ├── upload/
 │   │   └── users/
 │   │       └── me/
@@ -35,6 +35,8 @@ contact-catalog/
 │   │   │   │   └── page.tsx
 │   │   │   ├── new/
 │   │   │   │   └── page.tsx
+│   │   │   └── page.tsx
+│   │   ├── tags/
 │   │   │   └── page.tsx
 │   │   ├── layout.tsx
 │   │   └── page.tsx
@@ -56,13 +58,10 @@ contact-catalog/
 │   ├── layout/
 │   │   └── Header.tsx
 │   └── ui/
+│       ├── alert-dialog.tsx
 │       ├── badge.tsx
 │       ├── button.tsx
-│       ├── card.tsx
-│       ├── command.tsx
-│       ├── dialog.tsx
-│       ├── input.tsx
-│       ├── multi-select.tsx
+│       ├── ... [6 файлов скрыто] ...
 │       ├── popover.tsx
 │       ├── select.tsx
 │       └── toast.tsx
@@ -78,10 +77,6 @@ contact-catalog/
 │   └── uploads/
 │       └── 2026/
 │           └── 02/
-│               ├── 4f6c09f4-4f60-4d08-8c23-3f48a338033c.png
-│               ├── b3719bb1-7134-406e-b445-81bff8757ce8.png
-│               ├── thumb_4f6c09f4-4f60-4d08-8c23-3f48a338033c.png
-│               └── thumb_b3719bb1-7134-406e-b445-81bff8757ce8.png
 ├── scripts/
 ├── .env
 ├── .gitignore

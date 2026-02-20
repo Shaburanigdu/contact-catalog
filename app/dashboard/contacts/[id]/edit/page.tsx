@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react'; // !!! use для params
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -13,8 +13,9 @@ import {
   Upload,
   Tag as TagIcon,
   Palette,
-  Settings,        // <-- добавлен импорт
+  Settings,
 } from 'lucide-react';
+import { api } from '@/lib/api-client'; // <-- добавлен импорт
 
 interface Tag {
   id: string;
@@ -51,7 +52,7 @@ interface ContactFormData {
   interests: string[];
   important_facts: string[];
   avatar_url: string;
-  tags: string[]; // массив ID тегов
+  tags: string[];
 }
 
 const COLOR_PALETTE = [
@@ -75,9 +76,9 @@ const COLOR_PALETTE = [
 export default function EditContactPage({
   params,
 }: {
-  params: Promise<{ id: string }>; // !!! Тип – Promise
+  params: Promise<{ id: string }>;
 }) {
-  const { id: contactId } = use(params); // !!! Распаковываем
+  const { id: contactId } = use(params);
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
@@ -121,15 +122,14 @@ export default function EditContactPage({
     tags: [],
   });
 
-  // 1. Загружаем список доступных тегов
+  // Загружаем список доступных тегов
   useEffect(() => {
     fetchTags();
   }, []);
 
   const fetchTags = async () => {
     try {
-      const response = await fetch('/api/tags');
-      const result = await response.json();
+      const result = await api.get<{ success: boolean; data?: { tags: Tag[] } }>('/api/tags');
       if (result.success) {
         setAvailableTags(result.data?.tags || []);
       }
@@ -147,16 +147,14 @@ export default function EditContactPage({
     }
   };
 
-  // 2. Загружаем данные контакта
+  // Загружаем данные контакта
   useEffect(() => {
     const fetchContact = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/contacts/${contactId}`);
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || 'Не удалось загрузить контакт');
+        const result = await api.get<{ success: boolean; data?: any }>(`/api/contacts/${contactId}`);
+        if (!result.success) {
+          throw new Error('Не удалось загрузить контакт');
         }
 
         const contact = result.data;
@@ -206,9 +204,8 @@ export default function EditContactPage({
     };
 
     fetchContact();
-  }, [contactId]); // !!! Зависимость – contactId (распакованный id)
+  }, [contactId]);
 
-  // ---- Обработчики полей формы (полностью скопированы из new/page.tsx) ----
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -255,15 +252,12 @@ export default function EditContactPage({
     if (!newTagName.trim()) return;
 
     try {
-      const response = await fetch('/api/tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newTagName, color: newTagColor }),
+      const result = await api.post<{ success: boolean; data?: { tag: Tag } }>('/api/tags', {
+        name: newTagName,
+        color: newTagColor,
       });
-
-      const result = await response.json();
       if (result.success) {
-        const newTag = result.data.tag;
+        const newTag = result.data!.tag;
         setAvailableTags((prev) => [...prev, newTag]);
         setFormData((prev) => ({ ...prev, tags: [...prev.tags, newTag.id] }));
         setNewTagName('');
@@ -322,15 +316,12 @@ export default function EditContactPage({
         trust_level: formData.trust_level ? parseInt(formData.trust_level, 10) : null,
       };
 
-      const response = await fetch(`/api/contacts/${contactId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const result = await api.put<{ success: boolean; error?: string }>(
+        `/api/contacts/${contactId}`,
+        payload
+      );
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
+      if (!result.success) {
         throw new Error(result.error || 'Ошибка при сохранении');
       }
 
@@ -361,10 +352,6 @@ export default function EditContactPage({
     );
   }
 
-  // ----------------------------------------------------------------
-  //  ПОЛНОСТЬЮ КОПИРУЕМ ВСЮ ФОРМУ ИЗ new/page.tsx,
-  //  НО ЗНАЧЕНИЯ ПОЛЕЙ БЕРЁМ ИЗ formData, А НЕ ИЗ ПУСТЫХ НАЧАЛЬНЫХ.
-  // ----------------------------------------------------------------
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       {/* Шапка */}
@@ -392,7 +379,7 @@ export default function EditContactPage({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow">
-        {/* ========== ОСНОВНАЯ ИНФОРМАЦИЯ ========== */}
+        {/* Основная информация */}
         <div>
           <h3 className="text-lg font-medium mb-4">Основная информация</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -470,7 +457,7 @@ export default function EditContactPage({
           </div>
         </div>
 
-        {/* ========== КОНТАКТНАЯ ИНФОРМАЦИЯ ========== */}
+        {/* Контактная информация */}
         <div>
           <h3 className="text-lg font-medium mb-4">Контактная информация</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -521,7 +508,7 @@ export default function EditContactPage({
           </div>
         </div>
 
-        {/* ========== АДРЕС И РАБОТА ========== */}
+        {/* Адрес и работа */}
         <div>
           <h3 className="text-lg font-medium mb-4">Адрес и работа</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -605,7 +592,7 @@ export default function EditContactPage({
           </div>
         </div>
 
-        {/* ========== ОТНОШЕНИЯ И ЗНАКОМСТВО ========== */}
+        {/* Отношения и знакомство */}
         <div>
           <h3 className="text-lg font-medium mb-4">Отношения и знакомство</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -699,7 +686,7 @@ export default function EditContactPage({
           </div>
         </div>
 
-        {/* ========== ТЕГИ ========== */}
+        {/* Теги */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium">Теги</h3>
@@ -839,7 +826,7 @@ export default function EditContactPage({
           </div>
         </div>
 
-        {/* ========== ИНТЕРЕСЫ И ВАЖНЫЕ ФАКТЫ ========== */}
+        {/* Интересы и важные факты */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium mb-2">Интересы</label>
@@ -921,7 +908,7 @@ export default function EditContactPage({
           </div>
         </div>
 
-        {/* ========== ФОТО И ЗАМЕТКИ ========== */}
+        {/* Фото и заметки */}
         <div>
           <h3 className="text-lg font-medium mb-4">Фото и заметки</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -986,7 +973,7 @@ export default function EditContactPage({
           </div>
         </div>
 
-        {/* ========== КНОПКИ ФОРМЫ ========== */}
+        {/* Кнопки формы */}
         <div className="flex justify-end gap-4 pt-6 border-t">
           <Link
             href={`/dashboard/contacts/${contactId}`}

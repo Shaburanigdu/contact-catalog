@@ -1,8 +1,8 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,78 +12,83 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Tag as TagIcon, Trash2, Plus, AlertCircle } from 'lucide-react'
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tag as TagIcon, Trash2, Plus, AlertCircle } from 'lucide-react';
+import { api } from '@/lib/api-client';
 
 interface Tag {
-  id: string
-  name: string
-  color: string
-  is_system: boolean
-  _count?: { contact_tags: number }
+  id: string;
+  name: string;
+  color: string;
+  is_system: boolean;
+  _count?: { contact_tags: number };
+}
+
+interface TagsResponse {
+  success: boolean;
+  data?: { tags: Tag[] };
+  error?: string;
+}
+
+interface DeleteResponse {
+  success: boolean;
+  error?: string;
 }
 
 export default function TagsPage() {
-  const router = useRouter()
-  const [tags, setTags] = useState<Tag[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [tagToDelete, setTagToDelete] = useState<Tag | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [search, setSearch] = useState('')
+  const router = useRouter();
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tagToDelete, setTagToDelete] = useState<Tag | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetchTags()
-  }, [])
+    fetchTags();
+  }, []);
 
   const fetchTags = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch('/api/tags')
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`Ошибка ${res.status}: ${text.substring(0, 100)}`)
+      const result = await api.get<TagsResponse>('/api/tags');
+      if (result.success) {
+        setTags(result.data?.tags || []);
+      } else {
+        throw new Error(result.error || 'Неизвестная ошибка');
       }
-      const result = await res.json()
-      if (!result.success) {
-        throw new Error(result.error || 'Неизвестная ошибка')
-      }
-      setTags(result.data?.tags || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка загрузки тегов')
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки тегов');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!tagToDelete) return
+    if (!tagToDelete) return;
     try {
-      const res = await fetch(`/api/tags/${tagToDelete.id}`, {
-        method: 'DELETE',
-      })
-      const result = await res.json()
-      if (!res.ok || !result.success) {
-        throw new Error(result.error || 'Ошибка удаления')
+      const result = await api.delete<DeleteResponse>(`/api/tags/${tagToDelete.id}`);
+      if (!result.success) {
+        throw new Error(result.error || 'Ошибка удаления');
       }
-      setTags(tags.filter(t => t.id !== tagToDelete.id))
+      setTags(tags.filter(t => t.id !== tagToDelete.id));
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Ошибка при удалении')
+      alert(error instanceof Error ? error.message : 'Ошибка при удалении');
     } finally {
-      setDeleteDialogOpen(false)
-      setTagToDelete(null)
+      setDeleteDialogOpen(false);
+      setTagToDelete(null);
     }
-  }
+  };
 
   const filteredTags = tags.filter(tag =>
     tag.name.toLowerCase().includes(search.toLowerCase())
-  )
+  );
 
   if (loading) {
-    return <div className="flex justify-center p-8">Загрузка...</div>
+    return <div className="flex justify-center p-8">Загрузка...</div>;
   }
 
   if (error) {
@@ -100,7 +105,7 @@ export default function TagsPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -172,8 +177,8 @@ export default function TagsPage() {
                       size="sm"
                       className="text-red-600 hover:text-red-800"
                       onClick={() => {
-                        setTagToDelete(tag)
-                        setDeleteDialogOpen(true)
+                        setTagToDelete(tag);
+                        setDeleteDialogOpen(true);
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -208,5 +213,5 @@ export default function TagsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

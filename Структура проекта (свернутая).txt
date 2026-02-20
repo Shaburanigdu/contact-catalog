@@ -18,9 +18,8 @@
 │   └── layout
 │   └── ui
 ├── hooks/
+│   └── useAuth.ts
 │   └── useContacts.ts
-│   └── useSessionCleanup.ts
-│   └── useTokenRefresh.ts
 ├── lib/
 │   └── api-client.ts
 │   └── auth.ts

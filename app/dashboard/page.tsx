@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth';
 import { ContactList } from '@/components/contacts/ContactList'
 import { api } from '@/lib/api-client'
-import { useTokenRefresh } from '@/hooks/useTokenRefresh'
 import {
   Users,
   Calendar,
@@ -34,18 +33,15 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({})
   const [statsLoading, setStatsLoading] = useState(true)
 
-  useTokenRefresh()
-
   useEffect(() => {
     fetchStats()
   }, [])
 
   const fetchStats = async () => {
     try {
-      const statsResponse = await api.get('/api/contacts/stats')
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json()
-        setStats(statsData.data || {})
+      const result = await api.get<{ success: boolean; data?: DashboardStats }>('/api/contacts/stats')
+      if (result.success) {
+        setStats(result.data || {})
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error)

@@ -13,8 +13,9 @@ import {
   Upload,
   Tag as TagIcon,
   Palette,
-  Settings,        // <-- добавлен импорт
+  Settings,
 } from 'lucide-react';
+import { api } from '@/lib/api-client';
 
 interface Tag {
   id: string;
@@ -54,7 +55,24 @@ interface ContactFormData {
   tags: string[];
 }
 
-// Палитра цветов для тегов с контрастным текстом
+interface TagsResponse {
+  success: boolean;
+  data?: { tags: Tag[] };
+  error?: string;
+}
+
+interface CreateTagResponse {
+  success: boolean;
+  data?: { tag: Tag };
+  error?: string;
+}
+
+interface CreateContactResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+}
+
 const COLOR_PALETTE = [
   { value: '#3B82F6', textColor: 'white' },  // blue-600
   { value: '#EF4444', textColor: 'white' },  // red-500
@@ -121,8 +139,7 @@ export default function NewContactPage() {
 
   const fetchTags = async () => {
     try {
-      const response = await fetch('/api/tags');
-      const result = await response.json();
+      const result = await api.get<TagsResponse>('/api/tags');
       if (result.success) {
         setAvailableTags(result.data?.tags || []);
       }
@@ -184,23 +201,22 @@ export default function NewContactPage() {
     if (!newTagName.trim()) return;
 
     try {
-      const response = await fetch('/api/tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newTagName, color: newTagColor }),
+      const result = await api.post<CreateTagResponse>('/api/tags', {
+        name: newTagName,
+        color: newTagColor,
       });
-
-      const result = await response.json();
-      if (result.success) {
+      if (result.success && result.data) {
         const newTag = result.data.tag;
         setAvailableTags(prev => [...prev, newTag]);
         setFormData(prev => ({ ...prev, tags: [...prev.tags, newTag.id] }));
         setNewTagName('');
         setShowNewTagForm(false);
+      } else {
+        throw new Error(result.error || 'Ошибка при создании тега');
       }
     } catch (error) {
       console.error('Error creating tag:', error);
-      alert('Ошибка при создании тега');
+      alert(error instanceof Error ? error.message : 'Ошибка при создании тега');
     }
   };
 
@@ -243,21 +259,15 @@ export default function NewContactPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          relationship_level: formData.relationship_level ? parseInt(formData.relationship_level) : null,
-          trust_level: formData.trust_level ? parseInt(formData.trust_level) : null,
-          interests: formData.interests,
-          important_facts: formData.important_facts,
-        }),
+      const result = await api.post<CreateContactResponse>('/api/contacts', {
+        ...formData,
+        relationship_level: formData.relationship_level ? parseInt(formData.relationship_level) : null,
+        trust_level: formData.trust_level ? parseInt(formData.trust_level) : null,
+        interests: formData.interests,
+        important_facts: formData.important_facts,
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
+      if (!result.success) {
         throw new Error(result.error || 'Ошибка при создании контакта');
       }
 

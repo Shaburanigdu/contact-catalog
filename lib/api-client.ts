@@ -1,101 +1,113 @@
 // lib/api-client.ts
-const API_BASE_URL = ''
+type FetchOptions = RequestInit & {
+  skipRefresh?: boolean;
+};
 
 class ApiClient {
-  private isRefreshing = false
-  private failedQueue: Array<{resolve: (value?: any) => void; reject: (reason?: any) => void}> = []
+  private baseUrl: string;
+  private isRefreshing = false;
+  private refreshPromise: Promise<Response> | null = null;
+  private isRedirecting = false;
 
-  private async refreshToken(): Promise<boolean> {
-    try {
-      console.log('🔄 API Client: Пытаемся обновить токен...')
-      
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
-      if (response.ok) {
-        console.log('✅ API Client: Токен успешно обновлен')
-        return true
-      } else {
-        console.error('❌ API Client: Не удалось обновить токен')
-        return false
-      }
-    } catch (error) {
-      console.error('❌ API Client: Ошибка при обновлении токена:', error)
-      return false
-    }
+  constructor(baseUrl: string = '') {
+    this.baseUrl = baseUrl;
   }
 
-  async request(url: string, options: RequestInit = {}) {
-    // Добавляем credentials для отправки cookies
-    const requestOptions: RequestInit = {
-      ...options,
+  private async request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+    if (this.isRedirecting) {
+      throw new Error('Session expired');
+    }
+
+    const url = `${this.baseUrl}${endpoint}`;
+    const { skipRefresh = false, ...fetchOptions } = options;
+
+    let response = await fetch(url, {
+      ...fetchOptions,
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...fetchOptions.headers,
       },
-    }
+    });
 
-    // Первый запрос
-    let response = await fetch(url, requestOptions)
-    
-    // Если получили 401, пробуем обновить токен
-    if (response.status === 401 && !url.includes('/auth/refresh')) {
-      console.log('🔄 API Client: Получен 401, пытаемся обновить токен...')
-      
-      const refreshSuccess = await this.refreshToken()
-      
-      if (refreshSuccess) {
-        // Повторяем оригинальный запрос
-        response = await fetch(url, requestOptions)
+    if (response.status === 401 && !skipRefresh) {
+      const refreshed = await this.refreshToken();
+      if (refreshed) {
+        response = await fetch(url, {
+          ...fetchOptions,
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...fetchOptions.headers,
+          },
+        });
       } else {
-        // Если обновление не удалось, редиректим на логин
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
-        }
-        throw new Error('Authentication failed')
+        this.isRedirecting = true;
+        // Перенаправляем на логин после небольшой задержки, чтобы текущий запрос завершился
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+        }, 0);
+        throw new Error('Session expired');
       }
     }
-    
-    return response
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Request failed with status ${response.status}`);
+    }
+
+    return response.json();
   }
 
-  async get(url: string, options?: RequestInit) {
-    return this.request(url, { ...options, method: 'GET' })
+  private async refreshToken(): Promise<boolean> {
+    if (this.isRefreshing) {
+      await this.refreshPromise;
+      return true;
+    }
+
+    this.isRefreshing = true;
+    this.refreshPromise = fetch('/api/auth/refresh', {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    try {
+      const response = await this.refreshPromise;
+      this.isRefreshing = false;
+      this.refreshPromise = null;
+      return response.ok;
+    } catch (error) {
+      this.isRefreshing = false;
+      this.refreshPromise = null;
+      return false;
+    }
   }
 
-  async post(url: string, data?: any, options?: RequestInit) {
-    return this.request(url, {
-      ...options,
+  async get<T>(endpoint: string, options?: FetchOptions): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET', ...options });
+  }
+
+  async post<T>(endpoint: string, data?: any, options?: FetchOptions): Promise<T> {
+    return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
-    })
+      ...options,
+    });
   }
 
-  async put(url: string, data?: any, options?: RequestInit) {
-    return this.request(url, {
-      ...options,
+  async put<T>(endpoint: string, data?: any, options?: FetchOptions): Promise<T> {
+    return this.request<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
-    })
+      ...options,
+    });
   }
 
-  async delete(url: string, options?: RequestInit) {
-    return this.request(url, { ...options, method: 'DELETE' })
+  async delete<T>(endpoint: string, options?: FetchOptions): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE', ...options });
   }
 }
 
-export const api = new ApiClient()
-
-// Для обратной совместимости
-export default {
-  get: (url: string, options?: RequestInit) => api.get(url, options),
-  post: (url: string, data?: any, options?: RequestInit) => api.post(url, data, options),
-  put: (url: string, data?: any, options?: RequestInit) => api.put(url, data, options),
-  delete: (url: string, options?: RequestInit) => api.delete(url, options),
-}
+export const api = new ApiClient();

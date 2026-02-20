@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { api } from '@/lib/api-client';
 
 interface ContactTag {
   tag: {
@@ -84,173 +85,166 @@ interface ApiResponse<T> {
   message?: string
 }
 
+
 export function useContacts() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchContacts = useCallback(async (params?: {
-    page?: number
-    limit?: number
-    search?: string
-    city?: string
-    country?: string
-    relationship_type?: string
-    tag?: string
-    has_upcoming_events?: boolean
-    last_interaction_days?: number
+    page?: number;
+    limit?: number;
+    search?: string;
+    city?: string;
+    country?: string;
+    relationship_type?: string;
+    tag?: string;
+    has_upcoming_events?: boolean;
+    last_interaction_days?: number;
   }): Promise<ContactsResponse | null> => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const queryParams = new URLSearchParams()
-      if (params?.page) queryParams.set('page', params.page.toString())
-      if (params?.limit) queryParams.set('limit', params.limit.toString())
-      if (params?.search) queryParams.set('search', params.search)
-      if (params?.city) queryParams.set('city', params.city)
-      if (params?.country) queryParams.set('country', params.country)
-      if (params?.relationship_type) queryParams.set('relationship_type', params.relationship_type)
-      if (params?.tag) queryParams.set('tag', params.tag)
-      if (params?.has_upcoming_events) queryParams.set('has_upcoming_events', 'true')
-      if (params?.last_interaction_days) queryParams.set('last_interaction_days', params.last_interaction_days.toString())
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.set('page', params.page.toString());
+      if (params?.limit) queryParams.set('limit', params.limit.toString());
+      if (params?.search) queryParams.set('search', params.search);
+      if (params?.city) queryParams.set('city', params.city);
+      if (params?.country) queryParams.set('country', params.country);
+      if (params?.relationship_type) queryParams.set('relationship_type', params.relationship_type);
+      if (params?.tag) queryParams.set('tag', params.tag);
+      if (params?.has_upcoming_events) queryParams.set('has_upcoming_events', 'true');
+      if (params?.last_interaction_days) queryParams.set('last_interaction_days', params.last_interaction_days.toString());
 
-      const response = await fetch(`/api/contacts?${queryParams}`)
-      const result: ApiResponse<ContactsResponse> = await response.json()
+      const result = await api.get<{ success: boolean; data?: ContactsResponse; error?: string }>(
+        `/api/contacts?${queryParams}`
+      );
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch contacts')
+        throw new Error(result.error || 'Failed to fetch contacts');
       }
 
-      return result.data || null
+      return result.data || null;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return null
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   const fetchContact = useCallback(async (id: string): Promise<Contact | null> => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch(`/api/contacts/${id}`)
-      const result: ApiResponse<Contact> = await response.json()
+      const result = await api.get<{ success: boolean; data?: Contact; error?: string }>(
+        `/api/contacts/${id}`
+      );
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch contact')
+        throw new Error(result.error || 'Failed to fetch contact');
       }
 
-      return result.data || null
+      return result.data || null;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return null
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   const createContact = useCallback(async (data: ContactFormData): Promise<Contact | null> => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch('/api/contacts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
-
-      const result: ApiResponse<Contact> = await response.json()
+      const result = await api.post<{ success: boolean; data?: Contact; error?: string }>(
+        '/api/contacts',
+        data
+      );
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to create contact')
+        throw new Error(result.error || 'Failed to create contact');
       }
 
-      return result.data || null
+      return result.data || null;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return null
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
+  // аналогично updateContact, deleteContact, fetchStats
   const updateContact = useCallback(async (id: string, data: Partial<ContactFormData>): Promise<Contact | null> => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch(`/api/contacts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
-
-      const result: ApiResponse<Contact> = await response.json()
+      const result = await api.put<{ success: boolean; data?: Contact; error?: string }>(
+        `/api/contacts/${id}`,
+        data
+      );
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to update contact')
+        throw new Error(result.error || 'Failed to update contact');
       }
 
-      return result.data || null
+      return result.data || null;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return null
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   const deleteContact = useCallback(async (id: string): Promise<boolean> => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch(`/api/contacts/${id}`, {
-        method: 'DELETE',
-      })
-
-      const result: ApiResponse<void> = await response.json()
+      const result = await api.delete<{ success: boolean; error?: string }>(
+        `/api/contacts/${id}`
+      );
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to delete contact')
+        throw new Error(result.error || 'Failed to delete contact');
       }
 
-      return true
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return false
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return false;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   const fetchStats = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch('/api/contacts/stats')
-      const result: ApiResponse<any> = await response.json()
+      const result = await api.get<{ success: boolean; data?: any; error?: string }>(
+        '/api/contacts/stats'
+      );
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch stats')
+        throw new Error(result.error || 'Failed to fetch stats');
       }
 
-      return result.data || null
+      return result.data || null;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      return null
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   return {
     loading,
@@ -261,5 +255,5 @@ export function useContacts() {
     updateContact,
     deleteContact,
     fetchStats,
-  }
+  };
 }

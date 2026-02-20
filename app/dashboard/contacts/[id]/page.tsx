@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Edit, Mail, Phone, MapPin, Building, Calendar, Tag, Home } from 'lucide-react';
 import { RELATIONSHIP_LABELS } from '@/lib/constants';
+import { api } from '@/lib/api-client';
 
 interface Contact {
   id: string;
@@ -21,6 +22,12 @@ interface Contact {
   updated_at: string;
 }
 
+interface ContactResponse {
+  success: boolean;
+  data?: Contact;
+  error?: string;
+}
+
 export default function ContactDetailPage({
   params,
 }: {
@@ -33,13 +40,15 @@ export default function ContactDetailPage({
   useEffect(() => {
     const fetchContact = async () => {
       try {
-        const response = await fetch(`/api/contacts/${id}`);
-        const result = await response.json();
+        const result = await api.get<ContactResponse>(`/api/contacts/${id}`);
         if (result.success) {
-          setContact(result.data);
+          setContact(result.data || null);
+        } else {
+          setContact(null);
         }
       } catch (error) {
         console.error('Error fetching contact:', error);
+        setContact(null);
       } finally {
         setLoading(false);
       }
@@ -74,19 +83,15 @@ export default function ContactDetailPage({
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
-      {/* Навигация */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          {/* Кнопка "На главную" – домик */}
           <Link
             href="/dashboard"
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors p-2 rounded-lg hover:bg-gray-100"
             title="На главную"
           >
             <Home size={25} />
-            <span className="hidden sm:inline">{/*На главную*/}</span>
           </Link>
-          {/* Кнопка "Назад к списку контактов" */}
           <Link
             href="/dashboard/contacts"
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -106,10 +111,8 @@ export default function ContactDetailPage({
         </Link>
       </div>
 
-      {/* Карточка контакта (без изменений) */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-start gap-6">
-          {/* Аватар */}
           <div className="flex-shrink-0">
             {contact.avatar_url ? (
               <img
@@ -127,7 +130,6 @@ export default function ContactDetailPage({
             )}
           </div>
 
-          {/* Информация о контакте */}
           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
               <p className="text-sm text-gray-500">Тип отношений</p>
@@ -186,7 +188,6 @@ export default function ContactDetailPage({
           </div>
         </div>
 
-        {/* Теги */}
         {contact.tags && contact.tags.length > 0 && (
           <div className="mt-6 pt-6 border-t border-gray-200">
             <div className="flex items-center gap-2 mb-3">

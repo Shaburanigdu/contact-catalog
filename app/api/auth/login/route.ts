@@ -1,124 +1,84 @@
 // app/api/auth/login/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { verifyPassword, generateTokens, createOrResumeSession } from '@/lib/auth'
-import { loginSchema } from '@/lib/validation'
-import { z } from 'zod'
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { verifyPassword, generateTokens } from '@/lib/auth';
+import { loginSchema } from '@/lib/validation';
+import { z } from 'zod';
 
 export async function POST(request: NextRequest) {
-  console.log('\n🔵 ======= НОВЫЙ ЗАПРОС LOGIN =======')
-  
   try {
-    const body = await request.json()
-    const validatedData = loginSchema.parse(body)
-    
-    console.log('📝 Данные для входа:', { 
-      email: validatedData.email,
-      password: '***'
-    })
+    const body = await request.json();
+    const validatedData = loginSchema.parse(body);
 
-    // Ищем пользователя
-    console.log('🔍 Поиск пользователя по email...')
+    // Поиск пользователя
     const user = await prisma.user.findUnique({
-      where: { email: validatedData.email }
-    })
+      where: { email: validatedData.email },
+    });
 
     if (!user) {
-      console.log('❌ Пользователь не найден')
       return NextResponse.json(
         { error: 'Неверный email или пароль' },
         { status: 401 }
-      )
+      );
     }
-    
-    console.log('✅ Пользователь найден:', user.email)
 
-    // Проверяем пароль
-    console.log('🔐 Проверка пароля...')
-    const isValidPassword = await verifyPassword(validatedData.password, user.password_hash)
+    // Проверка пароля
+    const isValidPassword = await verifyPassword(validatedData.password, user.password_hash);
     if (!isValidPassword) {
-      console.log('❌ Неверный пароль')
       return NextResponse.json(
         { error: 'Неверный email или пароль' },
         { status: 401 }
-      )
+      );
     }
-    
-    console.log('✅ Пароль верный')
 
-    // Генерируем токены
-    console.log('🎫 Генерация токенов...')
+    // Генерация токенов
     const tokens = await generateTokens({
       id: user.id,
       email: user.email,
-      username: user.username || undefined
-    })
+      username: user.username || undefined,
+    });
 
-    // СОЗДАЕМ ИЛИ ВОЗОБНОВЛЯЕМ СЕССИЮ
-    console.log('📱 Создание или возобновление сессии...')
-    const userAgent = request.headers.get('user-agent') || undefined
-    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined
-
-    const session = await createOrResumeSession(
-      user.id,
-      tokens.refreshToken,
-      userAgent,
-      ipAddress
-    )
-
-    console.log('✅ Сессия создана с ID:', session.id)
-
-    // Обновляем последний вход
-    console.log('🔄 Обновление времени последнего входа...')
+    // Обновление времени последнего входа
     await prisma.user.update({
       where: { id: user.id },
-      data: { last_login_at: new Date() }
-    })
+      data: { last_login_at: new Date() },
+    });
 
-    // Создаем ответ
     const response = NextResponse.json({
       message: 'Успешный вход',
       user: {
         id: user.id,
         email: user.email,
-        username: user.username
-      }
-    })
+        username: user.username,
+      },
+    });
 
-    // Устанавливаем cookies
+    // Установка cookies
     response.cookies.set('access_token', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 15 * 60,
-      path: '/'
-    })
+      path: '/',
+    });
 
     response.cookies.set('refresh_token', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60,
-      path: '/'
-    })
+      path: '/',
+    });
 
-    console.log('✅ Cookies установлены')
-    console.log('🟢 ======= LOGIN УСПЕШЕН =======\n')
-    return response
-
+    return response;
   } catch (error) {
-    console.error('❌ Ошибка при входе:', error)
-    
+    console.error('Ошибка входа:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Некорректные данные', details: error.errors },
         { status: 400 }
-      )
+      );
     }
-
-    return NextResponse.json(
-      { error: 'Ошибка при входе' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Ошибка при входе' }, { status: 500 });
   }
 }

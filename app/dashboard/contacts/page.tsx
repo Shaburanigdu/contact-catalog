@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api-client';
 
 interface Contact {
   id: string;
@@ -26,6 +27,21 @@ interface Contact {
   company: string;
   avatar_url?: string;
   tags?: { id: string; name: string; color: string }[];
+}
+
+interface TagsResponse {
+  success: boolean;
+  data?: { tags: { id: string; name: string; color: string }[] };
+  error?: string;
+}
+
+interface ContactsResponse {
+  success: boolean;
+  data?: { 
+    contacts: Contact[]; 
+    pagination: { total: number } 
+  };
+  error?: string;
 }
 
 export default function ContactsPage({
@@ -56,10 +72,9 @@ export default function ContactsPage({
     const fetchTags = async () => {
       setLoadingTags(true);
       try {
-        const res = await fetch('/api/tags');
-        const result = await res.json();
+        const result = await api.get<TagsResponse>('/api/tags');
         if (result.success) {
-          setAvailableTags(result.data.tags);
+          setAvailableTags(result.data?.tags || []);
         }
       } catch (error) {
         console.error('Failed to load tags:', error);
@@ -114,8 +129,7 @@ export default function ContactsPage({
       query.set('sort', 'created_at_desc');
       query.set('limit', '50');
 
-      const response = await fetch(`/api/contacts?${query}`);
-      const result = await response.json();
+      const result = await api.get<ContactsResponse>(`/api/contacts?${query}`);
       if (result.success) {
         setContacts(result.data?.contacts || []);
         setTotal(result.data?.pagination?.total || 0);
@@ -143,14 +157,11 @@ export default function ContactsPage({
   const hasActiveFilters = filters.search || filters.city || filters.relationshipType || filters.tagIds.length > 0 || filters.lastInteractionDays;
 
   // Для select'ов нам нужны прокси-значения, потому что пустая строка не допускается
-  // Для типа отношений: "all" означает "Все" (пустая строка в фильтре)
   const relationshipTypeValue = filters.relationshipType || "all";
   const handleRelationshipTypeChange = (value: string) => {
-    // Если выбрано "all", устанавливаем пустую строку (сброс фильтра)
     handleFilterChange('relationshipType', value === "all" ? "" : value);
   };
 
-  // Для давности: "any" означает "Любой" (пустая строка в фильтре)
   const lastInteractionValue = filters.lastInteractionDays || "any";
   const handleLastInteractionChange = (value: string) => {
     handleFilterChange('lastInteractionDays', value === "any" ? "" : value);
@@ -196,7 +207,7 @@ export default function ContactsPage({
           )}
         </div>
 
-        {/* Первая строка: поиск (на всю ширину) */}
+        {/* Первая строка: поиск */}
         <div className="w-full">
           <label className="text-sm font-medium mb-1 block">Поиск</label>
           <Input
@@ -206,9 +217,8 @@ export default function ContactsPage({
           />
         </div>
 
-        {/* Вторая строка: остальные фильтры (сетка 4 колонки) */}
+        {/* Вторая строка: остальные фильтры */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Город */}
           <div>
             <label className="text-sm font-medium mb-1 block">Город</label>
             <Input
@@ -218,7 +228,6 @@ export default function ContactsPage({
             />
           </div>
 
-          {/* Тип отношений */}
           <div>
             <label className="text-sm font-medium mb-1 block">Тип отношений</label>
             <Select
@@ -240,7 +249,6 @@ export default function ContactsPage({
             </Select>
           </div>
 
-          {/* Теги */}
           <div>
             <label className="text-sm font-medium mb-1 block">Теги</label>
             <MultiSelect
@@ -256,7 +264,6 @@ export default function ContactsPage({
             />
           </div>
 
-          {/* Последний контакт */}
           <div>
             <label className="text-sm font-medium mb-1 block">Последний контакт</label>
             <Select
@@ -350,7 +357,7 @@ export default function ContactsPage({
         </p>
       )}
 
-      {/* Загрузка и список контактов (без изменений) */}
+      {/* Загрузка и список контактов */}
       {loading && (
         <div className="text-center py-12">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mb-2"></div>
