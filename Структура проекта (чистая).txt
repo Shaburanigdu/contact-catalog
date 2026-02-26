@@ -13,9 +13,18 @@ contact-catalog/
 │   │   │   ├── refresh/
 │   │   │   ├── register/
 │   │   │   ├── reset-password/
+│   │   │   ├── status/
 │   │   │   └── verify/
 │   │   ├── contacts/
 │   │   │   ├── [id]/
+│   │   │   │   ├── media/
+│   │   │   │   │   ├── [...]
+│   │   │   │   ├── notes/
+│   │   │   │   │   ├── [...]
+│   │   │   │   ├── reminders/
+│   │   │   │   │   ├── [...]
+│   │   │   │   └── timeline/
+│   │   │   │       └── [...]
 │   │   │   └── stats/
 │   │   ├── debug/
 │   │   │   ├── secrets/
@@ -53,18 +62,22 @@ contact-catalog/
 │   └── page.tsx
 ├── components/
 │   ├── contacts/
+│   │   ├── timeline/
+│   │   │   ├── ContactTimeline.tsx
+│   │   │   ├── TimelineInput.tsx
+│   │   │   └── TimelineMessage.tsx
 │   │   ├── ContactList.tsx
 │   │   └── CreateContactModal.tsx
 │   ├── layout/
 │   │   └── Header.tsx
 │   └── ui/
 │       ├── alert-dialog.tsx
+│       ├── avatar.tsx
 │       ├── badge.tsx
-│       ├── button.tsx
-│       ├── ... [6 файлов скрыто] ...
-│       ├── popover.tsx
-│       ├── select.tsx
-│       └── toast.tsx
+│       ├── ... [13 файлов скрыто] ...
+│       ├── textarea.tsx
+│       ├── toast.tsx
+│       └── toaster.tsx
 ├── hooks/
 ├── lib/
 ├── prisma/
@@ -77,6 +90,13 @@ contact-catalog/
 │   └── uploads/
 │       └── 2026/
 │           └── 02/
+│               ├── 335ace0d-3ba5-4d51-bb50-d90909bebfbc.png
+│               ├── 6ea8420e-6bc7-4a7b-b7fd-4458bea4b4fc.png
+│               ├── 7d6a27bb-3c4d-4667-8778-5801c419ba98.png
+│               ├── ... [6 файлов скрыто] ...
+│               ├── thumb_c2a2473d-7213-40bb-b26b-8ce308c5b524.png
+│               ├── thumb_e1e72f96-f454-4772-a13e-77abfc0fb02c.png
+│               └── thumb_fc15c06f-4189-4bd0-b283-f44214862b69.png
 ├── scripts/
 ├── .env
 ├── .gitignore

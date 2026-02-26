@@ -46,7 +46,7 @@ export async function generateTokens(user: UserPayload): Promise<AuthTokens> {
     username: user.username,
   })
     .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('1m')
+    .setExpirationTime('15m')
     .sign(secret);
 
   const refreshToken = await new jose.SignJWT({
@@ -55,7 +55,7 @@ export async function generateTokens(user: UserPayload): Promise<AuthTokens> {
     username: user.username,
   })
     .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('2m')
+    .setExpirationTime('7d')
     .sign(refreshSecret);
 
   return { accessToken, refreshToken };

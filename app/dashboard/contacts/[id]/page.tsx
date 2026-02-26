@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Edit, Mail, Phone, MapPin, Building, Calendar, Tag, Home } from 'lucide-react';
 import { RELATIONSHIP_LABELS } from '@/lib/constants';
 import { api } from '@/lib/api-client';
+import { ContactTimeline } from '@/components/contacts/timeline/ContactTimeline';
 
 interface Contact {
   id: string;
@@ -206,6 +207,15 @@ export default function ContactDetailPage({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Лента воспоминаний */}
+      <div className="mt-8">
+        <ContactTimeline
+          contactId={contact.id}
+          contactName={`${contact.first_name} ${contact.last_name}`}
+          contactAvatar={contact.avatar_url}
+        />
       </div>
     </div>
   );

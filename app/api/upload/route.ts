@@ -7,12 +7,6 @@ import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import sharp from 'sharp'
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
-
 // Допустимые MIME-типы
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
