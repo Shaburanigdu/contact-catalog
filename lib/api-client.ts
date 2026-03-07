@@ -6,18 +6,14 @@ type FetchOptions = RequestInit & {
 class ApiClient {
   private baseUrl: string;
   private isRefreshing = false;
-  private refreshPromise: Promise<Response> | null = null;
-  private isRedirecting = false;
+  private refreshPromise: Promise<boolean> | null = null;
+  private redirectScheduled = false; // переименовано для ясности
 
   constructor(baseUrl: string = '') {
     this.baseUrl = baseUrl;
   }
 
   private async request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-    if (this.isRedirecting) {
-      throw new Error('Session expired');
-    }
-
     const url = `${this.baseUrl}${endpoint}`;
     const { skipRefresh = false, ...fetchOptions } = options;
 
@@ -33,6 +29,7 @@ class ApiClient {
     if (response.status === 401 && !skipRefresh) {
       const refreshed = await this.refreshToken();
       if (refreshed) {
+        // Повторяем исходный запрос
         response = await fetch(url, {
           ...fetchOptions,
           credentials: 'include',
@@ -42,13 +39,15 @@ class ApiClient {
           },
         });
       } else {
-        this.isRedirecting = true;
-        // Перенаправляем на логин после небольшой задержки, чтобы текущий запрос завершился
-        setTimeout(() => {
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
-        }, 0);
+        // Не удалось обновить токен – редирект на логин, но НЕ блокируем будущие запросы
+        if (!this.redirectScheduled) {
+          this.redirectScheduled = true;
+          setTimeout(() => {
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login';
+            }
+          }, 0);
+        }
         throw new Error('Session expired');
       }
     }
@@ -68,21 +67,53 @@ class ApiClient {
     }
 
     this.isRefreshing = true;
-    this.refreshPromise = fetch('/api/auth/refresh', {
-      method: 'POST',
-      credentials: 'include',
-    });
+    this.refreshPromise = this.performRefreshWithRetry();
 
     try {
-      const response = await this.refreshPromise;
+      return await this.refreshPromise;
+    } finally {
       this.isRefreshing = false;
       this.refreshPromise = null;
-      return response.ok;
-    } catch (error) {
-      this.isRefreshing = false;
-      this.refreshPromise = null;
-      return false;
     }
+  }
+
+  private async performRefreshWithRetry(maxRetries = 4): Promise<boolean> {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          console.log(`✅ Refresh successful on attempt ${attempt + 1}`);
+          return true;
+        }
+
+        if (response.status === 401) {
+          console.warn(`❌ Refresh token expired/invalid (attempt ${attempt + 1})`);
+          return false; // фатально
+        }
+
+        // Другие ошибки (500, 429 и т.д.)
+        lastError = new Error(`Refresh failed with status ${response.status}`);
+        console.warn(`⚠️ Refresh attempt ${attempt + 1} failed: ${response.status}`);
+      } catch (error) {
+        lastError = error;
+        console.warn(`⚠️ Refresh attempt ${attempt + 1} network error:`, error);
+      }
+
+      if (attempt < maxRetries) {
+        const delay = 1000 * Math.pow(2, attempt); // экспоненциальная задержка
+        console.log(`⏳ Waiting ${delay}ms before next refresh attempt...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    console.error('❌ All refresh attempts failed', lastError);
+    return false;
   }
 
   async get<T>(endpoint: string, options?: FetchOptions): Promise<T> {

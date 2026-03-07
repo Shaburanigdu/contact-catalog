@@ -13,6 +13,8 @@ import {
 import { Bell, Settings, LogOut, HeartHandshake, Tag } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
+import { Trash2 } from 'lucide-react';
+
 
 export function Header() {
   const router = useRouter();
@@ -50,6 +52,12 @@ export function Header() {
                   <Link href="/dashboard/tags" className="flex items-center gap-2">
                     <Tag className="h-4 w-4" />
                     Управление тегами
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/trash" className="flex items-center gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    Корзина
                   </Link>
                 </DropdownMenuItem>
                 {/* Можно добавить другие пункты настроек */}

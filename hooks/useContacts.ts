@@ -34,7 +34,6 @@ interface Contact {
   user_id?: string 
 }
 
-
 interface ContactFormData {
   first_name: string
   last_name?: string
@@ -84,7 +83,6 @@ interface ApiResponse<T> {
   error?: string
   message?: string
 }
-
 
 export function useContacts() {
   const [loading, setLoading] = useState(false);
@@ -178,7 +176,6 @@ export function useContacts() {
     }
   }, []);
 
-  // аналогично updateContact, deleteContact, fetchStats
   const updateContact = useCallback(async (id: string, data: Partial<ContactFormData>): Promise<Contact | null> => {
     setLoading(true);
     setError(null);
@@ -246,6 +243,69 @@ export function useContacts() {
     }
   }, []);
 
+  // Новые методы для работы с корзиной
+  const fetchTrashContacts = useCallback(async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<ContactsResponse | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.set('page', params.page.toString());
+      if (params?.limit) queryParams.set('limit', params.limit.toString());
+      if (params?.search) queryParams.set('search', params.search);
+
+      const result = await api.get<{ success: boolean; data?: ContactsResponse; error?: string }>(
+        `/api/contacts/trash?${queryParams}`
+      );
+
+      if (!result.success) throw new Error(result.error || 'Failed to fetch trash');
+      return result.data || null;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const restoreContact = useCallback(async (id: string): Promise<Contact | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await api.post<{ success: boolean; data?: Contact; error?: string }>(
+        `/api/contacts/${id}/restore`,
+        {}
+      );
+      if (!result.success) throw new Error(result.error || 'Failed to restore');
+      return result.data || null;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const hardDeleteContact = useCallback(async (id: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await api.delete<{ success: boolean; error?: string }>(
+        `/api/contacts/${id}/hard`
+      );
+      if (!result.success) throw new Error(result.error || 'Failed to hard delete');
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     loading,
     error,
@@ -255,5 +315,8 @@ export function useContacts() {
     updateContact,
     deleteContact,
     fetchStats,
+    fetchTrashContacts,
+    restoreContact,
+    hardDeleteContact,
   };
 }

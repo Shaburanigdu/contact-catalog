@@ -65,13 +65,11 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
-
+    
+    console.log(`Refresh attempt for user ${payload?.id} at ${new Date().toISOString()}`);
     return response;
   } catch (error) {
     console.error('Refresh error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

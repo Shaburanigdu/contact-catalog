@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,13 +9,52 @@ import { Mail, Lock, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const from = searchParams.get('from') || '/dashboard'
+
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  
+  const [isChecking, setIsChecking] = useState(true)
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
+
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        // 1. Проверяем access token
+        const statusRes = await fetch('/api/auth/status')
+        if (statusRes.ok) {
+          // access жив — сразу редирект
+          router.replace(from)
+          return
+        }
+
+        // 2. Если access невалиден, пробуем обновить через refresh
+        const refreshRes = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include'
+        })
+
+        if (refreshRes.ok) {
+          // Refresh сработал — теперь access обновлён, можно редиректить
+          router.replace(from)
+          return
+        }
+
+        // 3. Не удалось восстановить сессию — показываем форму логина
+        setIsChecking(false)
+      } catch (err) {
+        // Сетевая ошибка — тоже оставляем на логине
+        console.error('Session restore failed:', err)
+        setIsChecking(false)
+      }
+    }
+
+    restoreSession()
+  }, [router, from])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,7 +74,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Ошибка входа')
       }
 
-      router.push('/dashboard')
+      router.push(from)
       router.refresh()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Произошла ошибка')
@@ -49,6 +88,21 @@ export default function LoginPage() {
       ...formData,
       [e.target.name]: e.target.value
     })
+  }
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl p-8 space-y-8 text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
+              <Loader2 className="h-6 w-6 text-indigo-600 animate-spin" />
+            </div>
+            <p className="text-gray-600">Восстановление сессии...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
