@@ -46,13 +46,46 @@ export async function DELETE(
       )
     }
 
+    // Находим или создаём системный тег "Другое" для замены в событиях
+    let defaultEventTag = await prisma.tag.findFirst({
+      where: {
+        user_id: user.id,
+        is_system: true,
+        name: 'Другое',
+      },
+    })
+
+    if (!defaultEventTag) {
+      defaultEventTag = await prisma.tag.create({
+        data: {
+          user_id: user.id,
+          name: 'Другое',
+          color: '#64748B',
+          is_system: true,
+          description: 'Тег по умолчанию для событий',
+        },
+      })
+    }
+
     // Сохраняем данные для аудита до удаления
     const oldTag = { ...tag }
 
-    // Удаляем тег (связи удалятся каскадно благодаря схеме Prisma)
-    await prisma.tag.delete({
-      where: { id },
-    })
+    // Транзакция: заменяем тег в событиях, удаляем связи с контактами, удаляем сам тег
+    await prisma.$transaction([
+      // Заменяем тег в событиях на дефолтный
+      prisma.eventTag.updateMany({
+        where: { tag_id: id },
+        data: { tag_id: defaultEventTag.id },
+      }),
+      // Удаляем связи с контактами (просто удаляем, т.к. контакты не требуют замены)
+      prisma.contactTag.deleteMany({
+        where: { tag_id: id },
+      }),
+      // Удаляем сам тег
+      prisma.tag.delete({
+        where: { id },
+      }),
+    ])
 
     // Аудит
     await createAuditLog(

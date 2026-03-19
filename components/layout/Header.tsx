@@ -1,6 +1,6 @@
 // components/layout/Header.tsx
 'use client';
-
+import { Calendar, Archive } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -61,6 +61,18 @@ export function Header() {
                   </Link>
                 </DropdownMenuItem>
                 {/* Можно добавить другие пункты настроек */}
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/events" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    События
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/events/archive" className="flex items-center gap-2">
+                    <Archive className="h-4 w-4" />
+                    Архив событий
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
