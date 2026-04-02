@@ -16,6 +16,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { api } from '@/lib/api-client'; // <-- добавлен импорт
+import { RelationshipTypeCombobox } from '@/components/contacts/RelationshipTypeCombobox'; // <-- импорт
 
 interface Tag {
   id: string;
@@ -598,25 +599,13 @@ export default function EditContactPage({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium mb-2">Тип отношений</label>
-              <select
-                name="relationship_type"
+              <RelationshipTypeCombobox
                 value={formData.relationship_type}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="friend">Друг</option>
-                <option value="family">Семья</option>
-                <option value="colleague">Коллега</option>
-                <option value="acquaintance">Знакомый</option>
-                <option value="business">Деловой партнер</option>
-                <option value="mentor">Наставник</option>
-                <option value="client">Клиент</option>
-              </select>
+                onChange={(value) => setFormData(prev => ({ ...prev, relationship_type: value }))}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Уровень отношений (1-10)
-              </label>
+              <label className="block text-sm font-medium mb-2">Уровень отношений (1-10)</label>
               <input
                 type="range"
                 name="relationship_level"
@@ -633,9 +622,7 @@ export default function EditContactPage({
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Уровень доверия (1-10)
-              </label>
+              <label className="block text-sm font-medium mb-2">Уровень доверия (1-10)</label>
               <input
                 type="range"
                 name="trust_level"

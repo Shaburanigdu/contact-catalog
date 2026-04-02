@@ -4,6 +4,8 @@
 ============================================================
 
 contact-catalog/
+├── .vs/
+│   └── slnx.sqlite
 ├── app/
 │   ├── api/
 │   │   ├── auth/
@@ -48,7 +50,22 @@ contact-catalog/
 │   │   │   │   └── route.ts
 │   │   │   └── token/
 │   │   │       └── route.ts
+│   │   ├── event-types/
+│   │   │   ├── [id]/
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts
+│   │   ├── events/
+│   │   │   ├── [id]/
+│   │   │   │   ├── hard/
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts
 │   │   ├── forgot-password/
+│   │   │   └── route.ts
+│   │   ├── notifications/
+│   │   │   ├── [id]/
+│   │   │   │   └── dismiss/
+│   │   │   │       └── route.ts
 │   │   │   └── route.ts
 │   │   ├── reset-password/
 │   │   │   └── route.ts
@@ -66,6 +83,16 @@ contact-catalog/
 │   │   │   ├── [id]/
 │   │   │   │   ├── edit/
 │   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── new/
+│   │   │   │   └── page.tsx
+│   │   │   └── page.tsx
+│   │   ├── events/
+│   │   │   ├── [id]/
+│   │   │   │   ├── edit/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── archive/
 │   │   │   │   └── page.tsx
 │   │   │   ├── new/
 │   │   │   │   └── page.tsx
@@ -95,9 +122,18 @@ contact-catalog/
 │   │   │   ├── TimelineInput.tsx
 │   │   │   └── TimelineMessage.tsx
 │   │   ├── ContactList.tsx
-│   │   └── CreateContactModal.tsx
+│   │   ├── CreateContactModal.tsx
+│   │   └── RelationshipTypeCombobox.tsx
+│   ├── events/
+│   │   ├── EventForm.tsx
+│   │   ├── LocationPicker.tsx
+│   │   ├── RecurrencePicker.tsx
+│   │   ├── ReminderPicker.tsx
+│   │   └── RestoreEventDialog.tsx
 │   ├── layout/
 │   │   └── Header.tsx
+│   ├── notifications/
+│   │   └── NotificationBell.tsx
 │   └── ui/
 │       ├── alert-dialog.tsx
 │       ├── avatar.tsx
@@ -105,16 +141,19 @@ contact-catalog/
 │       ├── button.tsx
 │       ├── calendar.tsx
 │       ├── card.tsx
+│       ├── checkbox.tsx
 │       ├── command.tsx
 │       ├── date-picker.tsx
 │       ├── dialog.tsx
 │       ├── dropdown-menu.tsx
 │       ├── input.tsx
+│       ├── label.tsx
 │       ├── multi-select.tsx
 │       ├── popover.tsx
 │       ├── providers.tsx
 │       ├── scroll-area.tsx
 │       ├── select.tsx
+│       ├── tabs.tsx
 │       ├── textarea.tsx
 │       ├── toast.tsx
 │       └── toaster.tsx

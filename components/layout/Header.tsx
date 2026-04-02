@@ -1,8 +1,8 @@
 // components/layout/Header.tsx
 'use client';
+import dynamic from 'next/dynamic';
 import { Calendar, Archive } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,14 +10,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Settings, LogOut, HeartHandshake, Tag } from 'lucide-react';
-import { api } from '@/lib/api-client';
-import { useAuth } from '@/hooks/useAuth';
+import { Settings, LogOut, HeartHandshake, Tag } from 'lucide-react';
 import { Trash2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
+// Динамический импорт NotificationBell без SSR
+const NotificationBell = dynamic(
+  () => import('@/components/notifications/NotificationBell').then(mod => mod.NotificationBell),
+  { ssr: false }
+);
 
 export function Header() {
-  const router = useRouter();
   const { logout } = useAuth();
 
   return (
@@ -36,10 +39,7 @@ export function Header() {
           </div>
 
           <div className="flex items-center space-x-1">
-            <button className="p-2 rounded-full hover:bg-gray-100 transition-colors relative">
-              <Bell className="h-5 w-5 text-gray-600" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-            </button>
+            <NotificationBell />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -60,7 +60,6 @@ export function Header() {
                     Корзина
                   </Link>
                 </DropdownMenuItem>
-                {/* Можно добавить другие пункты настроек */}
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/events" className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
