@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { getEmbedding } from '@/lib/embedding';
 
 export async function GET(
   request: NextRequest,
@@ -116,6 +117,23 @@ export async function PUT(
         deleted_at: body.deleted_at === null ? null : existing.deleted_at,
       },
     });
+
+    // Перегенерация эмбеддинга, если изменились title или description
+    if (body.title !== undefined || body.description !== undefined) {
+      const textForEmbedding = `${updated.title} ${updated.description || ''}`.trim();
+      if (textForEmbedding) {
+        try {
+          const embedding = await getEmbedding(textForEmbedding);
+          await prisma.$executeRaw`
+            UPDATE "Contact_catalog".events
+            SET embedding = ${JSON.stringify(embedding)}::vector
+            WHERE id = ${updated.id}::uuid
+          `;
+        } catch (err) {
+          console.error('Failed to update embedding for event:', err);
+        }
+      }
+    }
 
     // Обновление участников (удаляем старые, добавляем новые)
     if (body.participants !== undefined) {

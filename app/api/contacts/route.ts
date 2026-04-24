@@ -6,6 +6,8 @@ import {
   ApiResponse
 } from '@/lib/request-utils'
 import { prisma } from '@/lib/prisma'
+import { getEmbedding } from '@/lib/embedding';
+
 
 // GET /api/contacts - Получить контакты пользователя
 export async function GET(request: NextRequest) {
@@ -279,7 +281,7 @@ export async function POST(request: NextRequest) {
       company: body.company || null,
       job_title: body.job_title || null,
       department: body.department || null,
-      relationship_type: body.relationship_type || 'friend',
+      relationship_type: body.relationship_type || 'Друг',
       relationship_level: body.relationship_level ? parseInt(body.relationship_level) : null,
       trust_level: body.trust_level ? parseInt(body.trust_level) : null,
       how_we_met: body.how_we_met || null,
@@ -294,6 +296,22 @@ export async function POST(request: NextRequest) {
     const contact = await prisma.contact.create({
       data: contactData,
     })
+
+    // Генерация эмбеддинга для нового контакта
+    const textForEmbedding = `${contact.first_name} ${contact.last_name || ''} ${contact.company || ''} ${contact.personal_notes || ''}`.trim();
+    if (textForEmbedding) {
+      try {
+        const embedding = await getEmbedding(textForEmbedding);
+        await prisma.$executeRaw`
+          UPDATE "Contact_catalog".contacts
+          SET embedding = ${JSON.stringify(embedding)}::vector
+          WHERE id = ${contact.id}::uuid
+        `;
+      } catch (err) {
+        console.error('Failed to generate embedding for contact:', err);
+        // не прерываем выполнение, эмбеддинг можно будет сгенерировать позже
+      }
+    }
 
     if (body.tags && Array.isArray(body.tags) && body.tags.length > 0) {
       const tagConnections = body.tags.map((tagId: string) => ({

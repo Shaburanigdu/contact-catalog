@@ -6,6 +6,8 @@ import {
   ApiResponse
 } from '@/lib/request-utils'
 import { prisma } from '@/lib/prisma'
+import { getEmbedding } from '@/lib/embedding';
+
 
 // GET /api/contacts/[id] - Получить контакт по ID
 export async function GET(
@@ -195,6 +197,27 @@ export async function PUT(
       where: { id },
       data: updateData,
     })
+
+    // Перегенерация эмбеддинга, если изменились значимые поля
+    const meaningfulFieldsChanged = ['first_name', 'last_name', 'company', 'personal_notes'].some(
+      field => body[field] !== undefined
+    );
+    if (meaningfulFieldsChanged) {
+      const textForEmbedding = `${updatedContact.first_name} ${updatedContact.last_name || ''} ${updatedContact.company || ''} ${updatedContact.personal_notes || ''}`.trim();
+      if (textForEmbedding) {
+        try {
+          const embedding = await getEmbedding(textForEmbedding);
+          await prisma.$executeRaw`
+            UPDATE "Contact_catalog".contacts
+            SET embedding = ${JSON.stringify(embedding)}::vector
+            WHERE id = ${updatedContact.id}::uuid
+          `;
+        } catch (err) {
+          console.error('Failed to update embedding for contact:', err);
+        }
+      }
+    }
+
 
     // Обработка тегов (если переданы)
     if (Array.isArray(body.tags)) {

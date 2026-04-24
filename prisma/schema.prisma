@@ -10,7 +10,7 @@ datasource db {
 }
 
 model User {
-  id                        String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                        String                @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   email                     String                @unique @db.VarChar(255)
   username                  String?               @unique @db.VarChar(100)
   password_hash             String                @db.VarChar(255)
@@ -46,7 +46,7 @@ model User {
 }
 
 model AuditLog {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id          String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   user_id     String?   @db.Uuid
   action      String    @db.VarChar(50)
   entity_type String    @db.VarChar(50)
@@ -67,44 +67,45 @@ model AuditLog {
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Contact {
-  id                                                                      String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id                                                                 String                @db.Uuid
-  first_name                                                              String                @db.VarChar(100)
-  last_name                                                               String?               @db.VarChar(100)
-  middle_name                                                             String?               @db.VarChar(100)
-  nickname                                                                String?               @db.VarChar(100)
-  email                                                                   String?               @db.VarChar(255)
-  phone                                                                   String?               @db.VarChar(50)
-  phone_secondary                                                         String?               @db.VarChar(50)
-  website                                                                 String?               @db.VarChar(500)
-  gender                                                                  String?               @db.VarChar(20)
-  date_of_birth                                                           DateTime?             @db.Date
-  country                                                                 String?               @db.VarChar(100)
-  city                                                                    String?               @db.VarChar(100)
+  id                                                                      String                 @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id                                                                 String                 @db.Uuid
+  first_name                                                              String                 @db.VarChar(100)
+  last_name                                                               String?                @db.VarChar(100)
+  middle_name                                                             String?                @db.VarChar(100)
+  nickname                                                                String?                @db.VarChar(100)
+  email                                                                   String?                @db.VarChar(255)
+  phone                                                                   String?                @db.VarChar(50)
+  phone_secondary                                                         String?                @db.VarChar(50)
+  website                                                                 String?                @db.VarChar(500)
+  gender                                                                  String?                @db.VarChar(20)
+  date_of_birth                                                           DateTime?              @db.Date
+  country                                                                 String?                @db.VarChar(100)
+  city                                                                    String?                @db.VarChar(100)
   address                                                                 String?
-  postal_code                                                             String?               @db.VarChar(20)
-  company                                                                 String?               @db.VarChar(255)
-  job_title                                                               String?               @db.VarChar(255)
-  department                                                              String?               @db.VarChar(255)
-  relationship_type                                                       String?               @default("friend") @db.VarChar(50)
+  postal_code                                                             String?                @db.VarChar(20)
+  company                                                                 String?                @db.VarChar(255)
+  job_title                                                               String?                @db.VarChar(255)
+  department                                                              String?                @db.VarChar(255)
+  relationship_type                                                       String?                @default("Друг") @db.VarChar(50)
   relationship_level                                                      Int?
   trust_level                                                             Int?
   how_we_met                                                              String?
-  met_date                                                                DateTime?             @db.Date
-  met_location                                                            String?               @db.VarChar(255)
+  met_date                                                                DateTime?              @db.Date
+  met_location                                                            String?                @db.VarChar(255)
   personal_notes                                                          String?
   interests                                                               Json?
   important_facts                                                         Json?
-  avatar_url                                                              String?               @db.VarChar(500)
-  last_interaction_date                                                   DateTime?             @db.Timestamptz(6)
-  total_interactions                                                      Int?                  @default(0)
-  created_at                                                              DateTime?             @default(now()) @db.Timestamptz(6)
-  updated_at                                                              DateTime?             @default(now()) @db.Timestamptz(6)
-  deleted_at                                                              DateTime?             @db.Timestamptz(6)
-  contact_relationships_contact_relationships_source_contact_idTocontacts ContactRelationship[] @relation("contact_relationships_source_contact_idTocontacts")
-  contact_relationships_contact_relationships_target_contact_idTocontacts ContactRelationship[] @relation("contact_relationships_target_contact_idTocontacts")
+  avatar_url                                                              String?                @db.VarChar(500)
+  last_interaction_date                                                   DateTime?              @db.Timestamptz(6)
+  total_interactions                                                      Int?                   @default(0)
+  created_at                                                              DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at                                                              DateTime?              @default(now()) @db.Timestamptz(6)
+  deleted_at                                                              DateTime?              @db.Timestamptz(6)
+  embedding                                                               Unsupported("vector")?
+  contact_relationships_contact_relationships_source_contact_idTocontacts ContactRelationship[]  @relation("contact_relationships_source_contact_idTocontacts")
+  contact_relationships_contact_relationships_target_contact_idTocontacts ContactRelationship[]  @relation("contact_relationships_target_contact_idTocontacts")
   contact_tags                                                            ContactTag[]
-  users                                                                   User                  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                                                                   User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   event_participants                                                      EventParticipant[]
   interactions                                                            Interaction[]
   media                                                                   Media[]
@@ -118,12 +119,13 @@ model Contact {
   @@index([user_id, phone], map: "idx_contacts_phone")
   @@index([user_id, relationship_type], map: "idx_contacts_relationship")
   @@index([user_id], map: "idx_contacts_user")
+  @@index([embedding], map: "idx_contacts_embedding")
   @@map("contacts")
   @@schema("Contact_catalog")
 }
 
 model ContactRelationship {
-  id                                                         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                                                         String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   user_id                                                    String    @db.Uuid
   source_contact_id                                          String    @db.Uuid
   target_contact_id                                          String    @db.Uuid
@@ -145,7 +147,7 @@ model ContactRelationship {
 }
 
 model Tag {
-  id           String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id           String       @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   user_id      String       @db.Uuid
   name         String       @db.VarChar(100)
   color        String?      @default("#3B82F6") @db.VarChar(7)
@@ -179,7 +181,7 @@ model ContactTag {
 }
 
 model InteractionType {
-  id           String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id           String        @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   user_id      String        @db.Uuid
   name         String        @db.VarChar(100)
   icon         String?       @db.VarChar(50)
@@ -197,28 +199,29 @@ model InteractionType {
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Interaction {
-  id                  String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id             String           @db.Uuid
-  contact_id          String           @db.Uuid
-  interaction_type_id String?          @db.Uuid
-  title               String           @db.VarChar(255)
+  id                  String                 @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id             String                 @db.Uuid
+  contact_id          String                 @db.Uuid
+  interaction_type_id String?                @db.Uuid
+  title               String                 @db.VarChar(255)
   description         String?
   quick_notes         String?
-  started_at          DateTime         @db.Timestamptz(6)
-  ended_at            DateTime?        @db.Timestamptz(6)
+  started_at          DateTime               @db.Timestamptz(6)
+  ended_at            DateTime?              @db.Timestamptz(6)
   duration_minutes    Int?
-  location            String?          @db.VarChar(255)
-  location_lat        Decimal?         @db.Decimal(10, 8)
-  location_lng        Decimal?         @db.Decimal(11, 8)
+  location            String?                @db.VarChar(255)
+  location_lat        Decimal?               @db.Decimal(10, 8)
+  location_lng        Decimal?               @db.Decimal(11, 8)
   mood_before         Int?
   mood_after          Int?
   importance          Int?
-  created_at          DateTime?        @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime?        @default(now()) @db.Timestamptz(6)
-  deleted_at          DateTime?        @db.Timestamptz(6)
-  contacts            Contact          @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  interaction_types   InteractionType? @relation(fields: [interaction_type_id], references: [id], onUpdate: NoAction)
-  users               User             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  created_at          DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?              @default(now()) @db.Timestamptz(6)
+  deleted_at          DateTime?              @db.Timestamptz(6)
+  embedding           Unsupported("vector")?
+  contacts            Contact                @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interaction_types   InteractionType?       @relation(fields: [interaction_type_id], references: [id], onUpdate: NoAction)
+  users               User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   media               Media[]
   notes               Note[]
   reminders           Reminder[]
@@ -232,21 +235,22 @@ model Interaction {
 }
 
 model Note {
-  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id        String       @db.Uuid
-  contact_id     String?      @db.Uuid
-  event_id       String?      @db.Uuid
-  interaction_id String?      @db.Uuid
-  title          String?      @db.VarChar(255)
+  id             String                 @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id        String                 @db.Uuid
+  contact_id     String?                @db.Uuid
+  event_id       String?                @db.Uuid
+  interaction_id String?                @db.Uuid
+  title          String?                @db.VarChar(255)
   content        String
-  is_private     Boolean?     @default(false)
-  created_at     DateTime?    @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime?    @default(now()) @db.Timestamptz(6)
-  deleted_at     DateTime?    @db.Timestamptz(6)
-  events         Event?       @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notes_event")
-  contacts       Contact?     @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  interactions   Interaction? @relation(fields: [interaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users          User         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  is_private     Boolean?               @default(false)
+  created_at     DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?              @default(now()) @db.Timestamptz(6)
+  deleted_at     DateTime?              @db.Timestamptz(6)
+  embedding      Unsupported("vector")?
+  events         Event?                 @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notes_event")
+  contacts       Contact?               @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interactions   Interaction?           @relation(fields: [interaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([contact_id], map: "idx_notes_contact")
   @@index([created_at], map: "idx_notes_created")
@@ -256,7 +260,7 @@ model Note {
 }
 
 model EventType {
-  id                       String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                       String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   user_id                  String    @db.Uuid
   name                     String    @db.VarChar(100)
   icon                     String?   @db.VarChar(50)
@@ -277,33 +281,34 @@ model EventType {
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Event {
-  id                    String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id               String             @db.Uuid
-  event_type_id         String?            @db.Uuid
-  title                 String             @db.VarChar(255)
+  id                    String                 @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id               String                 @db.Uuid
+  event_type_id         String?                @db.Uuid
+  title                 String                 @db.VarChar(255)
   description           String?
-  start_at              DateTime           @db.Timestamptz(6)
-  end_at                DateTime?          @db.Timestamptz(6)
-  is_all_day            Boolean?           @default(false)
-  timezone              String?            @db.VarChar(50)
-  is_recurring          Boolean?           @default(false)
-  recurrence_rule       String?            @db.VarChar(500)
-  recurrence_exceptions DateTime[]         @db.Date
-  parent_event_id       String?            @db.Uuid
-  location              String?            @db.VarChar(500)
-  location_lat          Decimal?           @db.Decimal(10, 8)
-  location_lng          Decimal?           @db.Decimal(11, 8)
-  status                String?            @default("scheduled") @db.VarChar(20)
-  is_public             Boolean?           @default(false)
-  created_at            DateTime?          @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime?          @default(now()) @db.Timestamptz(6)
-  deleted_at            DateTime?          @db.Timestamptz(6)
+  start_at              DateTime               @db.Timestamptz(6)
+  end_at                DateTime?              @db.Timestamptz(6)
+  is_all_day            Boolean?               @default(false)
+  timezone              String?                @db.VarChar(50)
+  is_recurring          Boolean?               @default(false)
+  recurrence_rule       String?                @db.VarChar(500)
+  recurrence_exceptions DateTime[]             @db.Date
+  parent_event_id       String?                @db.Uuid
+  location              String?                @db.VarChar(500)
+  location_lat          Decimal?               @db.Decimal(10, 8)
+  location_lng          Decimal?               @db.Decimal(11, 8)
+  status                String?                @default("scheduled") @db.VarChar(20)
+  is_public             Boolean?               @default(false)
+  created_at            DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?              @default(now()) @db.Timestamptz(6)
+  deleted_at            DateTime?              @db.Timestamptz(6)
+  embedding             Unsupported("vector")?
   event_participants    EventParticipant[]
   event_tags            EventTag[]
-  event_types           EventType?         @relation(fields: [event_type_id], references: [id], onUpdate: NoAction)
-  events                Event?             @relation("eventsToevents", fields: [parent_event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  other_events          Event[]            @relation("eventsToevents")
-  users                 User               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  event_types           EventType?             @relation(fields: [event_type_id], references: [id], onUpdate: NoAction)
+  events                Event?                 @relation("eventsToevents", fields: [parent_event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_events          Event[]                @relation("eventsToevents")
+  users                 User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   media                 Media[]
   notes                 Note[]
   reminders             Reminder[]
@@ -317,7 +322,7 @@ model Event {
 }
 
 model EventParticipant {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id          String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   event_id    String    @db.Uuid
   contact_id  String    @db.Uuid
   user_id     String    @db.Uuid
@@ -352,7 +357,7 @@ model EventTag {
 }
 
 model Media {
-  id                String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                String       @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   user_id           String       @db.Uuid
   contact_id        String?      @db.Uuid
   event_id          String?      @db.Uuid
@@ -388,7 +393,7 @@ model Media {
 }
 
 model Reminder {
-  id                    String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                    String                @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   user_id               String                @db.Uuid
   contact_id            String?               @db.Uuid
   event_id              String?               @db.Uuid
@@ -423,7 +428,7 @@ model Reminder {
 }
 
 model NotificationHistory {
-  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id            String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
   user_id       String    @db.Uuid
   reminder_id   String?   @db.Uuid
   channel       String    @db.VarChar(50)

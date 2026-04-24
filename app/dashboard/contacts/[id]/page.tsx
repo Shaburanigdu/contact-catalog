@@ -6,6 +6,8 @@ import { ArrowLeft, Edit, Mail, Phone, MapPin, Building, Calendar, Tag, Home } f
 import { RELATIONSHIP_LABELS } from '@/lib/constants';
 import { api } from '@/lib/api-client';
 import { ContactTimeline } from '@/components/contacts/timeline/ContactTimeline';
+import { QuickInteractionButton } from '@/components/contacts/QuickInteractionButton';
+import { RecentInteractions } from '@/components/contacts/RecentInteractions';
 
 interface Contact {
   id: string;
@@ -29,34 +31,36 @@ interface ContactResponse {
   error?: string;
 }
 
-export default function ContactDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const fetchContact = async () => {
+    try {
+      const result = await api.get<ContactResponse>(`/api/contacts/${id}`);
+      if (result.success) {
+        setContact(result.data || null);
+      } else {
+        setContact(null);
+      }
+    } catch (error) {
+      console.error('Error fetching contact:', error);
+      setContact(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchContact = async () => {
-      try {
-        const result = await api.get<ContactResponse>(`/api/contacts/${id}`);
-        if (result.success) {
-          setContact(result.data || null);
-        } else {
-          setContact(null);
-        }
-      } catch (error) {
-        console.error('Error fetching contact:', error);
-        setContact(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchContact();
   }, [id]);
+
+  const handleInteractionAdded = () => {
+    fetchContact();
+    setRefreshKey(prev => prev + 1);
+  };
 
   if (loading) {
     return (
@@ -104,12 +108,15 @@ export default function ContactDetailPage({
             {contact.first_name} {contact.last_name}
           </h1>
         </div>
-        <Link href={`/dashboard/contacts/${contact.id}/edit`}>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
-            <Edit className="h-4 w-4" />
-            Редактировать
-          </button>
-        </Link>
+        <div className="flex gap-2">
+          <QuickInteractionButton contactId={contact.id} onSuccess={handleInteractionAdded} />
+          <Link href={`/dashboard/contacts/${contact.id}/edit`}>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              Редактировать
+            </button>
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
@@ -212,10 +219,16 @@ export default function ContactDetailPage({
       {/* Лента воспоминаний */}
       <div className="mt-8">
         <ContactTimeline
+          key={refreshKey}
           contactId={contact.id}
           contactName={`${contact.first_name} ${contact.last_name}`}
           contactAvatar={contact.avatar_url}
         />
+      </div>
+
+      {/* Последние взаимодействия */}
+      <div className="mt-8">
+        <RecentInteractions contactId={contact.id} key={refreshKey} />
       </div>
     </div>
   );

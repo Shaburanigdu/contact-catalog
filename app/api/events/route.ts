@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { startOfDay, endOfDay } from 'date-fns';
+import { getEmbedding } from '@/lib/embedding';
+
 
 // Функция для автоматического архивирования прошедших событий
 async function archivePastEvents(userId: string) {
@@ -222,6 +224,21 @@ export async function POST(request: NextRequest) {
         status: 'scheduled',
       },
     });
+
+    // Генерация эмбеддинга для события
+    const textForEmbedding = `${event.title} ${event.description || ''}`.trim();
+    if (textForEmbedding) {
+      try {
+        const embedding = await getEmbedding(textForEmbedding);
+        await prisma.$executeRaw`
+          UPDATE "Contact_catalog".events
+          SET embedding = ${JSON.stringify(embedding)}::vector
+          WHERE id = ${event.id}::uuid
+        `;
+      } catch (err) {
+        console.error('Failed to generate embedding for event:', err);
+      }
+    }
 
     // Добавление участников
     if (participants && Array.isArray(participants) && participants.length > 0) {

@@ -6,6 +6,9 @@
 
 --- app/ ---
     ├── api/
+    │   ├── analytics/
+    │   │   └── overview/
+    │   │       └── route.ts
     │   ├── auth/
     │   │   ├── forgot-password/
     │   │   │   └── route.ts
@@ -26,6 +29,7 @@
     │   ├── contacts/
     │   │   ├── [id]/
     │   │   │   ├── hard/
+    │   │   │   ├── interactions/
     │   │   │   ├── media/
     │   │   │   ├── notes/
     │   │   │   ├── reminders/
@@ -53,12 +57,17 @@
     │   │   └── route.ts
     │   ├── forgot-password/
     │   │   └── route.ts
+    │   ├── interaction-types/
+    │   │   └── route.ts
     │   ├── notifications/
     │   │   ├── [id]/
     │   │   │   └── dismiss/
     │   │   └── route.ts
     │   ├── reset-password/
     │   │   └── route.ts
+    │   ├── search/
+    │   │   └── ai/
+    │   │       └── route.ts
     │   ├── tags/
     │   │   ├── [id]/
     │   │   │   └── route.ts
@@ -69,6 +78,8 @@
     │       └── me/
     │           └── route.ts
     ├── dashboard/
+    │   ├── analytics/
+    │   │   └── page.tsx
     │   ├── contacts/
     │   │   ├── [id]/
     │   │   │   ├── edit/
@@ -112,6 +123,9 @@
     │   │   └── TimelineMessage.tsx
     │   ├── ContactList.tsx
     │   ├── CreateContactModal.tsx
+    │   ├── InteractionTypeCombobox.tsx
+    │   ├── QuickInteractionButton.tsx
+    │   ├── RecentInteractions.tsx
     │   └── RelationshipTypeCombobox.tsx
     ├── events/
     │   ├── EventForm.tsx
@@ -155,6 +169,7 @@
     ├── api-client.ts
     ├── auth.ts
     ├── constants.ts
+    ├── embedding.ts
     ├── logger.ts
     ├── middleware-auth.ts
     ├── prisma.ts
@@ -176,6 +191,7 @@
     ├── check-jwt.js
     ├── check-secrets.js
     ├── debug-login.js
+    ├── generate-embeddings.ts
     ├── quick-refresh-test.js
     ├── refresh-test-with-cookies.js
     ├── refresh.js
@@ -216,6 +232,7 @@
 --- Корневые файлы ---
 ├── .env
 ├── .gitignore
+├── audit-report.json
 ├── components.json
 ├── middleware.ts
 ├── next-env.d.ts

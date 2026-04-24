@@ -8,6 +8,9 @@ contact-catalog/
 │   └── slnx.sqlite
 ├── app/
 │   ├── api/
+│   │   ├── analytics/
+│   │   │   └── overview/
+│   │   │       └── route.ts
 │   │   ├── auth/
 │   │   │   ├── forgot-password/
 │   │   │   │   └── route.ts
@@ -28,6 +31,8 @@ contact-catalog/
 │   │   ├── contacts/
 │   │   │   ├── [id]/
 │   │   │   │   ├── hard/
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── interactions/
 │   │   │   │   │   └── route.ts
 │   │   │   │   ├── media/
 │   │   │   │   │   └── route.ts
@@ -62,6 +67,8 @@ contact-catalog/
 │   │   │   └── route.ts
 │   │   ├── forgot-password/
 │   │   │   └── route.ts
+│   │   ├── interaction-types/
+│   │   │   └── route.ts
 │   │   ├── notifications/
 │   │   │   ├── [id]/
 │   │   │   │   └── dismiss/
@@ -69,6 +76,9 @@ contact-catalog/
 │   │   │   └── route.ts
 │   │   ├── reset-password/
 │   │   │   └── route.ts
+│   │   ├── search/
+│   │   │   └── ai/
+│   │   │       └── route.ts
 │   │   ├── tags/
 │   │   │   ├── [id]/
 │   │   │   │   └── route.ts
@@ -79,6 +89,8 @@ contact-catalog/
 │   │       └── me/
 │   │           └── route.ts
 │   ├── dashboard/
+│   │   ├── analytics/
+│   │   │   └── page.tsx
 │   │   ├── contacts/
 │   │   │   ├── [id]/
 │   │   │   │   ├── edit/
@@ -123,6 +135,9 @@ contact-catalog/
 │   │   │   └── TimelineMessage.tsx
 │   │   ├── ContactList.tsx
 │   │   ├── CreateContactModal.tsx
+│   │   ├── InteractionTypeCombobox.tsx
+│   │   ├── QuickInteractionButton.tsx
+│   │   ├── RecentInteractions.tsx
 │   │   └── RelationshipTypeCombobox.tsx
 │   ├── events/
 │   │   ├── EventForm.tsx
@@ -164,6 +179,7 @@ contact-catalog/
 │   ├── api-client.ts
 │   ├── auth.ts
 │   ├── constants.ts
+│   ├── embedding.ts
 │   ├── logger.ts
 │   ├── middleware-auth.ts
 │   ├── prisma.ts
@@ -208,6 +224,7 @@ contact-catalog/
 │   ├── check-jwt.js
 │   ├── check-secrets.js
 │   ├── debug-login.js
+│   ├── generate-embeddings.ts
 │   ├── quick-refresh-test.js
 │   ├── refresh-test-with-cookies.js
 │   ├── refresh.js
@@ -220,6 +237,7 @@ contact-catalog/
 │   └── test-users-me.js
 ├── .env
 ├── .gitignore
+├── audit-report.json
 ├── components.json
 ├── middleware.ts
 ├── next-env.d.ts

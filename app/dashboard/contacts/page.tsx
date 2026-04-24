@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Home, XCircle, Filter } from 'lucide-react';
+import { Plus, Home, XCircle, Filter, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,6 +16,20 @@ import {
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api-client';
+import { cn } from '@/lib/utils';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface Contact {
   id: string;
@@ -67,12 +81,15 @@ export default function ContactsPage({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [relationshipTypes, setRelationshipTypes] = useState<string[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(false);
+  const [relTypeOpen, setRelTypeOpen] = useState(false);
 
   useEffect(() => {
     const fetchTags = async () => {
       setLoadingTags(true);
       try {
-        const result = await api.get<TagsResponse>('/api/tags');
+        const result = await api.get<TagsResponse>('/api/tags?entity=contacts');
         if (result.success) {
           setAvailableTags(result.data?.tags || []);
         }
@@ -83,6 +100,21 @@ export default function ContactsPage({
       }
     };
     fetchTags();
+  }, []);
+
+  useEffect(() => {
+    const fetchTypes = async () => {
+      setLoadingTypes(true);
+      try {
+        const res = await api.get<{ success: boolean; data: string[] }>('/api/contacts/relationship-types');
+        if (res.success) setRelationshipTypes(res.data);
+      } catch (e) {
+        console.error('Failed to load relationship types', e);
+      } finally {
+        setLoadingTypes(false);
+      }
+    };
+    fetchTypes();
   }, []);
 
   const updateUrl = (newFilters: typeof filters) => {
@@ -145,7 +177,6 @@ export default function ContactsPage({
     fetchContacts();
   }, [filters]);
 
-  // Функция для получения человеко-читаемого названия фильтра по давности
   const getLastInteractionLabel = (days: string) => {
     if (days === '30') return 'Более 30 дней';
     if (days === '90') return 'Более 3 месяцев';
@@ -153,19 +184,9 @@ export default function ContactsPage({
     return `Более ${days} дней`;
   };
 
-  // Проверка, активен ли какой-либо фильтр
   const hasActiveFilters = filters.search || filters.city || filters.relationshipType || filters.tagIds.length > 0 || filters.lastInteractionDays;
 
-  // Для select'ов нам нужны прокси-значения, потому что пустая строка не допускается
-  const relationshipTypeValue = filters.relationshipType || "all";
-  const handleRelationshipTypeChange = (value: string) => {
-    handleFilterChange('relationshipType', value === "all" ? "" : value);
-  };
-
-  const lastInteractionValue = filters.lastInteractionDays || "any";
-  const handleLastInteractionChange = (value: string) => {
-    handleFilterChange('lastInteractionDays', value === "any" ? "" : value);
-  };
+  const selectedRelationshipLabel = filters.relationshipType || "Любой тип";
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -207,7 +228,7 @@ export default function ContactsPage({
           )}
         </div>
 
-        {/* Первая строка: поиск */}
+        {/* Поиск */}
         <div className="w-full">
           <label className="text-sm font-medium mb-1 block">Поиск</label>
           <Input
@@ -217,7 +238,7 @@ export default function ContactsPage({
           />
         </div>
 
-        {/* Вторая строка: остальные фильтры */}
+        {/* Остальные фильтры */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="text-sm font-medium mb-1 block">Город</label>
@@ -230,23 +251,63 @@ export default function ContactsPage({
 
           <div>
             <label className="text-sm font-medium mb-1 block">Тип отношений</label>
-            <Select
-              value={filters.relationshipType || "all"}
-              onValueChange={(value) => handleFilterChange('relationshipType', value === "all" ? "" : value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Все" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все</SelectItem>
-                <SelectItem value="friend">Друг</SelectItem>
-                <SelectItem value="family">Семья</SelectItem>
-                <SelectItem value="colleague">Коллега</SelectItem>
-                <SelectItem value="acquaintance">Знакомый</SelectItem>
-                <SelectItem value="partner">Партнёр</SelectItem>
-                <SelectItem value="other">Другое</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover open={relTypeOpen} onOpenChange={setRelTypeOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={relTypeOpen}
+                  className="w-full justify-between"
+                  disabled={loadingTypes}
+                >
+                  {selectedRelationshipLabel}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                <Command>
+                  <CommandInput placeholder="Поиск типа..." />
+                  <CommandList>
+                    <CommandEmpty>Ничего не найдено</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="all"
+                        onSelect={() => {
+                          handleFilterChange('relationshipType', '');
+                          setRelTypeOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            !filters.relationshipType ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        Все типы
+                      </CommandItem>
+                      {relationshipTypes.map((type) => (
+                        <CommandItem
+                          key={type}
+                          value={type}
+                          onSelect={() => {
+                            handleFilterChange('relationshipType', type);
+                            setRelTypeOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              filters.relationshipType === type ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {type}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
@@ -290,10 +351,7 @@ export default function ContactsPage({
           {filters.search && (
             <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
               Поиск: {filters.search}
-              <button
-                onClick={() => clearFilter('search')}
-                className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
-              >
+              <button onClick={() => clearFilter('search')} className="ml-1 hover:bg-gray-200 rounded-full p-0.5">
                 <XCircle size={14} />
               </button>
             </Badge>
@@ -301,26 +359,15 @@ export default function ContactsPage({
           {filters.city && (
             <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
               Город: {filters.city}
-              <button
-                onClick={() => clearFilter('city')}
-                className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
-              >
+              <button onClick={() => clearFilter('city')} className="ml-1 hover:bg-gray-200 rounded-full p-0.5">
                 <XCircle size={14} />
               </button>
             </Badge>
           )}
           {filters.relationshipType && (
             <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
-              Отношения: {filters.relationshipType === 'friend' ? 'Друг' : 
-                          filters.relationshipType === 'family' ? 'Семья' :
-                          filters.relationshipType === 'colleague' ? 'Коллега' :
-                          filters.relationshipType === 'acquaintance' ? 'Знакомый' :
-                          filters.relationshipType === 'partner' ? 'Партнёр' :
-                          filters.relationshipType}
-              <button
-                onClick={() => clearFilter('relationshipType')}
-                className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
-              >
+              Отношения: {filters.relationshipType}
+              <button onClick={() => clearFilter('relationshipType')} className="ml-1 hover:bg-gray-200 rounded-full p-0.5">
                 <XCircle size={14} />
               </button>
             </Badge>
@@ -328,10 +375,7 @@ export default function ContactsPage({
           {filters.tagIds.length > 0 && (
             <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
               Теги: {filters.tagIds.length}
-              <button
-                onClick={() => clearFilter('tagIds')}
-                className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
-              >
+              <button onClick={() => clearFilter('tagIds')} className="ml-1 hover:bg-gray-200 rounded-full p-0.5">
                 <XCircle size={14} />
               </button>
             </Badge>
@@ -339,10 +383,7 @@ export default function ContactsPage({
           {filters.lastInteractionDays && (
             <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
               {getLastInteractionLabel(filters.lastInteractionDays)}
-              <button
-                onClick={() => clearFilter('lastInteractionDays')}
-                className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
-              >
+              <button onClick={() => clearFilter('lastInteractionDays')} className="ml-1 hover:bg-gray-200 rounded-full p-0.5">
                 <XCircle size={14} />
               </button>
             </Badge>

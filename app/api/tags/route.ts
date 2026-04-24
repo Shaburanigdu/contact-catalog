@@ -13,10 +13,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const entity = searchParams.get('entity') || 'all'; // 'contacts', 'events', 'all'
-    const scope = searchParams.get('scope'); // 'contact', 'event', 'both' (опционально)
+    const entity = searchParams.get('entity') || 'all';
 
-    // Формируем where для тегов
     const where: any = {
       OR: [
         { user_id: user.id },
@@ -24,21 +22,12 @@ export async function GET(request: NextRequest) {
       ],
     };
 
-    if (scope) {
-      where.scope = scope;
-    }
-
     const tags = await prisma.tag.findMany({
       where,
-      orderBy: [
-        { is_system: 'asc' },
-        { name: 'asc' },
-      ],
+      orderBy: [{ is_system: 'asc' }, { name: 'asc' }],
     });
 
     const tagIds = tags.map(t => t.id);
-
-    // Считаем использования в контактах и событиях
     let contactCounts: Record<string, number> = {};
     let eventCounts: Record<string, number> = {};
 
@@ -47,10 +36,7 @@ export async function GET(request: NextRequest) {
         by: ['tag_id'],
         where: {
           tag_id: { in: tagIds },
-          contacts: {
-            user_id: user.id,
-            deleted_at: null,
-          }
+          contacts: { user_id: user.id, deleted_at: null }
         },
         _count: { tag_id: true },
       });
@@ -63,10 +49,7 @@ export async function GET(request: NextRequest) {
         by: ['tag_id'],
         where: {
           tag_id: { in: tagIds },
-          events: {
-            user_id: user.id,
-            deleted_at: null,
-          }
+          events: { user_id: user.id, deleted_at: null }
         },
         _count: { tag_id: true },
       });
@@ -82,7 +65,6 @@ export async function GET(request: NextRequest) {
       eventCount: eventCounts[tag.id] || 0,
     }));
 
-    // Фильтрация по entity (если нужно)
     let filteredTags = tagsWithCounts;
     if (entity === 'contacts') {
       filteredTags = tagsWithCounts.filter(tag => tag.contactCount > 0);
@@ -114,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, color, icon, description, scope = 'both' } = body;
+    const { name, color, icon, description } = body;
 
     if (!name || !color) {
       return NextResponse.json<ApiResponse>(
@@ -123,7 +105,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Проверка на дубликат
     const existingTag = await prisma.tag.findFirst({
       where: {
         user_id: user.id,
@@ -146,7 +127,6 @@ export async function POST(request: NextRequest) {
         icon: icon || null,
         description: description || null,
         is_system: false,
-        scope, // новое поле
       },
     });
 

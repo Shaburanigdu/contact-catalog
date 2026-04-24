@@ -122,7 +122,7 @@ export default function NewContactPage() {
     company: '',
     job_title: '',
     department: '',
-    relationship_type: 'friend',
+    relationship_type: 'Друг',
     relationship_level: '5',
     trust_level: '5',
     how_we_met: '',

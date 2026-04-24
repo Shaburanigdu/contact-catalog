@@ -3,6 +3,8 @@ import * as jose from 'jose';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
+import { NextRequest } from 'next/server';
+
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-change-in-production';
@@ -102,6 +104,20 @@ export async function getCurrentUser(): Promise<UserPayload | null> {
     const accessToken = cookieStore.get('access_token')?.value;
     if (!accessToken) return null;
     return await verifyAccessToken(accessToken);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Получить ID текущего пользователя из запроса (для API Routes)
+ */
+export async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
+  try {
+    const token = request.cookies.get('access_token')?.value;
+    if (!token) return null;
+    const payload = await verifyAccessToken(token);
+    return payload.id;
   } catch {
     return null;
   }

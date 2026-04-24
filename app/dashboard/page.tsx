@@ -25,6 +25,7 @@ interface DashboardStats {
   totalContacts?: number
   contactsByCity?: Array<{ city: string; count: number }>
   contactsWithoutInteraction?: number
+  upcomingEventsCount?: number   // новое поле
 }
 
 export default function DashboardPage() {
@@ -50,7 +51,6 @@ export default function DashboardPage() {
     }
   }
 
-  // Функция для обновления статистики после удаления контакта
   const handleContactDeleted = () => {
     fetchStats()
   }
@@ -59,13 +59,13 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
-          {/* Заголовок страницы */}
+          {/* Убираем русское слово "Дашборд", оставляем краткий заголовок */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Дашборд</h1>
-            <p className="text-gray-600 mt-2">Обзор ваших контактов и активности</p>
+            <h1 className="text-3xl font-bold text-gray-900">Обзор</h1>
+            <p className="text-gray-600 mt-2">Ваши контакты и активность</p>
           </div>
 
-          {/* Статистика (скелетон) */}
+          {/* Статистика */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {statsLoading ? (
               [...Array(4)].map((_, i) => (
@@ -100,11 +100,12 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
+                {/* Карточка "Предстоящие события" с реальным числом */}
                 <div className="bg-white rounded-lg shadow p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Предстоящие события</p>
-                      <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-2">{stats.upcomingEventsCount || 0}</p>
                     </div>
                     <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
                       <Calendar className="h-6 w-6 text-green-600" />
@@ -146,13 +147,16 @@ export default function DashboardPage() {
                 </div>
               </Link>
 
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed opacity-60">
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mb-3">
-                  <Calendar className="h-5 w-5 text-green-600" />
+              {/* Исправленная кнопка "Предстоящие события" — активная ссылка на /dashboard/events */}
+              <Link href="/dashboard/events">
+                <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mb-3">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                  </div>
+                  <h4 className="font-medium text-gray-900">Предстоящие события</h4>
+                  <p className="text-sm text-gray-600 mt-1">Просмотр и управление</p>
                 </div>
-                <h4 className="font-medium text-gray-900">Предстоящие события</h4>
-                <p className="text-sm text-gray-600 mt-1">Скоро появится</p>
-              </div>
+              </Link>
 
               <Link href="/dashboard/contacts?last_interaction_days=90">
                 <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">

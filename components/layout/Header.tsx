@@ -3,6 +3,8 @@
 import dynamic from 'next/dynamic';
 import { Calendar, Archive } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,6 +24,56 @@ const NotificationBell = dynamic(
 
 export function Header() {
   const { logout } = useAuth();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Закрывать результаты при клике вне области поиска
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounce для поиска
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        fetch('/api/search/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: searchQuery.trim() }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            setSearchResults(data.results || []);
+            setOpen(true);
+          })
+          .catch(console.error);
+      } else {
+        setSearchResults([]);
+        setOpen(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSelect = (result: any) => {
+    setOpen(false);
+    setSearchQuery('');
+    if (result.type === 'contact') {
+      router.push(`/dashboard/contacts/${result.id}`);
+    } else if (result.type === 'event') {
+      router.push(`/dashboard/events/${result.id}`);
+    }
+  };
 
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
@@ -36,6 +88,40 @@ export function Header() {
                 Kindred
               </span>
             </Link>
+          </div>
+
+          {/* Поисковая строка */}
+          <div className="relative w-96" ref={searchRef}>
+            <input
+              type="text"
+              placeholder="Поиск по смыслу..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => {
+                if (searchResults.length > 0) setOpen(true);
+              }}
+              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            {open && searchResults.length > 0 && (
+              <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-auto rounded-md border bg-white shadow-lg">
+                {searchResults.map((result: any) => (
+                  <div
+                    key={result.id}
+                    onClick={() => handleSelect(result)}
+                    className="cursor-pointer px-3 py-2 hover:bg-gray-100 border-b last:border-b-0"
+                  >
+                    <div className="font-medium">
+                      {result.type === 'contact'
+                        ? `${result.first_name} ${result.last_name || ''}`
+                        : result.title}
+                    </div>
+                    <div className="text-xs text-gray-500 capitalize">
+                      {result.type === 'contact' ? 'Контакт' : 'Событие'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-1">
