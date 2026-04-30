@@ -7,7 +7,7 @@ class ApiClient {
   private baseUrl: string;
   private isRefreshing = false;
   private refreshPromise: Promise<boolean> | null = null;
-  private redirectScheduled = false; // переименовано для ясности
+  private redirectScheduled = false;
 
   constructor(baseUrl: string = '') {
     this.baseUrl = baseUrl;

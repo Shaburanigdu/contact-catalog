@@ -14,9 +14,17 @@ import {
   Tag as TagIcon,
   Palette,
   Settings,
+  User,
+  Mail,
+  MapPin,
+  Briefcase,
+  Heart,
+  Star,
+  Camera,
+  Info,
 } from 'lucide-react';
-import { api } from '@/lib/api-client'; // <-- добавлен импорт
-import { RelationshipTypeCombobox } from '@/components/contacts/RelationshipTypeCombobox'; // <-- импорт
+import { api } from '@/lib/api-client';
+import { RelationshipTypeCombobox } from '@/components/contacts/RelationshipTypeCombobox';
 
 interface Tag {
   id: string;
@@ -123,7 +131,6 @@ export default function EditContactPage({
     tags: [],
   });
 
-  // Загружаем список доступных тегов
   useEffect(() => {
     fetchTags();
   }, []);
@@ -136,7 +143,6 @@ export default function EditContactPage({
       }
     } catch (error) {
       console.error('Error fetching tags:', error);
-      // Заглушка для разработки
       setAvailableTags([
         { id: '1', name: 'Семья', color: '#EF4444', is_system: true },
         { id: '2', name: 'Друзья', color: '#3B82F6', is_system: true },
@@ -148,7 +154,6 @@ export default function EditContactPage({
     }
   };
 
-  // Загружаем данные контакта
   useEffect(() => {
     const fetchContact = async () => {
       try {
@@ -159,10 +164,7 @@ export default function EditContactPage({
         }
 
         const contact = result.data;
-
-        // Преобразуем теги из contact.contact_tags в массив ID
-        const tagIds =
-          contact.contact_tags?.map((ct: any) => ct.tag_id || ct.tags?.id) || [];
+        const tagIds = contact.contact_tags?.map((ct: any) => ct.tag_id || ct.tags?.id) || [];
 
         setFormData({
           first_name: contact.first_name || '',
@@ -174,9 +176,7 @@ export default function EditContactPage({
           phone_secondary: contact.phone_secondary || '',
           website: contact.website || '',
           gender: contact.gender || '',
-          date_of_birth: contact.date_of_birth
-            ? contact.date_of_birth.split('T')[0]
-            : '',
+          date_of_birth: contact.date_of_birth ? contact.date_of_birth.split('T')[0] : '',
           country: contact.country || '',
           city: contact.city || '',
           address: contact.address || '',
@@ -207,9 +207,7 @@ export default function EditContactPage({
     fetchContact();
   }, [contactId]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -311,9 +309,7 @@ export default function EditContactPage({
     try {
       const payload = {
         ...formData,
-        relationship_level: formData.relationship_level
-          ? parseInt(formData.relationship_level, 10)
-          : null,
+        relationship_level: formData.relationship_level ? parseInt(formData.relationship_level, 10) : null,
         trust_level: formData.trust_level ? parseInt(formData.trust_level, 10) : null,
       };
 
@@ -355,7 +351,6 @@ export default function EditContactPage({
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
-      {/* Шапка */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-4">
@@ -379,10 +374,13 @@ export default function EditContactPage({
         <p className="text-gray-600 mt-2">Измените информацию о контакте</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* Основная информация */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">Основная информация</h3>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <User className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-medium">Основная информация</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium mb-2">
@@ -459,8 +457,11 @@ export default function EditContactPage({
         </div>
 
         {/* Контактная информация */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">Контактная информация</h3>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Mail className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-medium">Контактная информация</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium mb-2">Email</label>
@@ -510,8 +511,12 @@ export default function EditContactPage({
         </div>
 
         {/* Адрес и работа */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">Адрес и работа</h3>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="h-5 w-5 text-blue-600" />
+            <Briefcase className="h-5 w-5 text-blue-600 ml-2" />
+            <h3 className="text-lg font-medium">Адрес и работа</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium mb-2">Страна</label>
@@ -594,8 +599,11 @@ export default function EditContactPage({
         </div>
 
         {/* Отношения и знакомство */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">Отношения и знакомство</h3>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Heart className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-medium">Отношения и знакомство</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium mb-2">Тип отношений</label>
@@ -674,9 +682,12 @@ export default function EditContactPage({
         </div>
 
         {/* Теги */}
-        <div>
+        <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium">Теги</h3>
+            <div className="flex items-center gap-2">
+              <TagIcon className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-medium">Теги</h3>
+            </div>
             <Link
               href="/dashboard/tags"
               className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
@@ -710,7 +721,6 @@ export default function EditContactPage({
                 );
               })}
             </div>
-
             <div className="space-y-3">
               <label className="block text-sm font-medium">Выберите теги:</label>
               <div className="flex flex-wrap gap-2">
@@ -734,7 +744,6 @@ export default function EditContactPage({
                 })}
               </div>
             </div>
-
             <button
               type="button"
               onClick={() => setShowNewTagForm(!showNewTagForm)}
@@ -743,7 +752,6 @@ export default function EditContactPage({
               <Plus size={16} />
               {showNewTagForm ? 'Скрыть форму создания тега' : 'Создать новый тег'}
             </button>
-
             {showNewTagForm && (
               <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -781,9 +789,7 @@ export default function EditContactPage({
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <Palette size={16} className="text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        Выбран: {newTagColor}
-                      </span>
+                      <span className="text-sm text-gray-600">Выбран: {newTagColor}</span>
                     </div>
                   </div>
                 </div>
@@ -814,90 +820,100 @@ export default function EditContactPage({
         </div>
 
         {/* Интересы и важные факты */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">Интересы</label>
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={interestInput}
-                  onChange={(e) => setInterestInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addInterest())}
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
-                  placeholder="Добавить интерес"
-                />
-                <button
-                  type="button"
-                  onClick={addInterest}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
-                >
-                  Добавить
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.interests.map((interest, index) => (
-                  <div
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Star className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-medium">Интересы и важные факты</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium mb-2">Интересы</label>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={interestInput}
+                    onChange={(e) => setInterestInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addInterest())}
+                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
+                    placeholder="Добавить интерес"
+                  />
+                  <button
+                    type="button"
+                    onClick={addInterest}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
                   >
-                    {interest}
-                    <button
-                      type="button"
-                      className="ml-2 hover:text-blue-600"
-                      onClick={() => removeInterest(index)}
+                    Добавить
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.interests.map((interest, index) => (
+                    <div
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
                     >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
+                      {interest}
+                      <button
+                        type="button"
+                        className="ml-2 hover:text-blue-600"
+                        onClick={() => removeInterest(index)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Важные факты</label>
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={factInput}
-                  onChange={(e) => setFactInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFact())}
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
-                  placeholder="Добавить важный факт"
-                />
-                <button
-                  type="button"
-                  onClick={addFact}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
-                >
-                  Добавить
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.important_facts.map((fact, index) => (
-                  <div
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm"
+            <div>
+              <label className="block text-sm font-medium mb-2">Важные факты</label>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={factInput}
+                    onChange={(e) => setFactInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFact())}
+                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
+                    placeholder="Добавить важный факт"
+                  />
+                  <button
+                    type="button"
+                    onClick={addFact}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
                   >
-                    {fact}
-                    <button
-                      type="button"
-                      className="ml-2 hover:text-amber-600"
-                      onClick={() => removeFact(index)}
+                    Добавить
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.important_facts.map((fact, index) => (
+                    <div
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm"
                     >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
+                      {fact}
+                      <button
+                        type="button"
+                        className="ml-2 hover:text-amber-600"
+                        onClick={() => removeFact(index)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Фото и заметки */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">Фото и заметки</h3>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Camera className="h-5 w-5 text-blue-600" />
+            <Info className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-medium">Фото и заметки</h3>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium mb-2">Фото контакта</label>
@@ -961,7 +977,7 @@ export default function EditContactPage({
         </div>
 
         {/* Кнопки формы */}
-        <div className="flex justify-end gap-4 pt-6 border-t">
+        <div className="flex justify-end gap-4 pt-6">
           <Link
             href={`/dashboard/contacts/${contactId}`}
             className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

@@ -144,20 +144,22 @@ export function ContactList({ limit = 20, showFilters = true, onContactDeleted }
 
   return (
     <div className="space-y-6">
-      {/* Заголовок и кнопки */}
-      <div className="flex justify-between items-center">
+      {/* Заголовок и кнопки — адаптивная версия */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Контакты</h2>
           <p className="text-gray-600">Всего контактов: {pagination.total}</p>
         </div>
-        <div className="flex space-x-2">
-          <Link href="/dashboard/contacts">
-            <Button variant="outline">Все контакты</Button>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard/contacts" className="flex-1 sm:flex-initial">
+            <Button variant="outline" className="w-full sm:w-auto whitespace-nowrap">
+              Все контакты
+            </Button>
           </Link>
-          <Link href="/dashboard/contacts/new">
-            <Button>
+          <Link href="/dashboard/contacts/new" className="flex-1 sm:flex-initial">
+            <Button className="w-full sm:w-auto whitespace-nowrap">
               <UserPlus className="h-4 w-4 mr-2" />
-              Добавить контакт
+              <span className="whitespace-nowrap">Добавить контакт</span>
             </Button>
           </Link>
         </div>
@@ -224,7 +226,10 @@ export function ContactList({ limit = 20, showFilters = true, onContactDeleted }
       {/* Список контактов */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {contacts.map((contact) => (
-          <div key={contact.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+          <div 
+            key={contact.id} 
+            className="bg-white rounded-lg shadow transition-all duration-200 hover:shadow-lg hover:bg-gray-50 cursor-pointer"
+          >
             <div className="p-6">
               {/* Заголовок карточки с меню */}
               <div className="flex items-start justify-between mb-4">

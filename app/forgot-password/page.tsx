@@ -18,22 +18,23 @@ export default function ForgotPasswordPage() {
   const [countdown, setCountdown] = useState(4)
 
   // Обработчик таймера для редиректа
+  // Обработчик таймера для редиректа
   useEffect(() => {
     if (isSuccess && resetToken) {
       const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer)
-            router.push(`/reset-password/${resetToken}`)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
+        setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
 
-      return () => clearInterval(timer)
+      return () => clearInterval(timer);
     }
-  }, [isSuccess, resetToken, router])
+  }, [isSuccess, resetToken]);
+
+  // Отдельный эффект для редиректа при countdown === 0
+  useEffect(() => {
+    if (isSuccess && resetToken && countdown === 0) {
+      router.push(`/reset-password/${resetToken}`);
+    }
+  }, [isSuccess, resetToken, countdown, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

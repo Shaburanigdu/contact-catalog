@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const entity = searchParams.get('entity') || 'all';
+    const entity = searchParams.get('entity') || 'all'; // 'contacts', 'events', 'all'
 
-    const where: any = {
+    let where: any = {
       OR: [
         { user_id: user.id },
         { is_system: true }
@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
       ...tag,
       contactCount: contactCounts[tag.id] || 0,
       eventCount: eventCounts[tag.id] || 0,
+      // interactionCount убран
     }));
 
     let filteredTags = tagsWithCounts;
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
     } else if (entity === 'events') {
       filteredTags = tagsWithCounts.filter(tag => tag.eventCount > 0);
     }
+    // для 'all' – никакой фильтрации
 
     return NextResponse.json<ApiResponse>({
       success: true,
@@ -85,6 +87,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST (создание тега) остаётся без изменений, но чтобы не было проблем с новой колонкой scope, оставьте как есть.
 export async function POST(request: NextRequest) {
   try {
     const { user, error } = await authenticateRequest(request);
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, color, icon, description } = body;
+    const { name, color, icon, description, scope = 'both' } = body;
 
     if (!name || !color) {
       return NextResponse.json<ApiResponse>(
@@ -127,6 +130,7 @@ export async function POST(request: NextRequest) {
         icon: icon || null,
         description: description || null,
         is_system: false,
+        scope, // колонка существует в БД, так что можно оставить
       },
     });
 

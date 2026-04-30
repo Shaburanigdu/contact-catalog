@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/request-utils';
 import { prisma } from '@/lib/prisma';
 
-// GET – список типов взаимодействий (для комбобокса)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -18,7 +17,6 @@ export async function GET(
   const page = parseInt(url.searchParams.get('page') || '1');
   const skip = (page - 1) * limit;
 
-  // Проверяем контакт
   const contact = await prisma.contact.findFirst({
     where: { id: contactId, user_id: user.id, deleted_at: null },
   });
@@ -32,7 +30,9 @@ export async function GET(
       orderBy: { started_at: 'desc' },
       skip,
       take: limit,
-      include: { interaction_types: true },
+      include: {
+        interaction_types: true,
+      },
     }),
     prisma.interaction.count({ where: { contact_id: contactId, deleted_at: null } }),
   ]);
@@ -43,7 +43,6 @@ export async function GET(
   });
 }
 
-// POST – создание взаимодействия
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -68,7 +67,6 @@ export async function POST(
     trust_level_delta = 0,
   } = body;
 
-  // Проверяем контакт
   const contact = await prisma.contact.findFirst({
     where: { id: contactId, user_id: user.id, deleted_at: null },
   });
@@ -76,12 +74,10 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'Contact not found' }, { status: 404 });
   }
 
-  // Приводим значения mood/importance к диапазону 1-5 (как в БД)
   const moodBeforeVal = mood_before ? Math.min(5, Math.max(1, parseInt(mood_before))) : null;
   const moodAfterVal = mood_after ? Math.min(5, Math.max(1, parseInt(mood_after))) : null;
   const importanceVal = importance ? Math.min(3, Math.max(1, parseInt(importance))) : null;
 
-  // Вычисляем новые уровни (оставляем 1-10)
   let newRelationshipLevel = contact.relationship_level || 5;
   let newTrustLevel = contact.trust_level || 5;
   if (relationship_level_delta) {
@@ -91,7 +87,6 @@ export async function POST(
     newTrustLevel = Math.min(10, Math.max(1, newTrustLevel + trust_level_delta));
   }
 
-  // Создаём взаимодействие
   const interaction = await prisma.interaction.create({
     data: {
       user_id: user.id,
@@ -107,7 +102,6 @@ export async function POST(
     },
   });
 
-  // Обновляем контакт
   await prisma.contact.update({
     where: { id: contactId },
     data: {
@@ -118,10 +112,15 @@ export async function POST(
     },
   });
 
-  return NextResponse.json({ success: true, data: interaction });
+  // Возвращаем созданное взаимодействие с типом
+  const created = await prisma.interaction.findUnique({
+    where: { id: interaction.id },
+    include: { interaction_types: true },
+  });
+
+  return NextResponse.json({ success: true, data: created });
 }
 
-// DELETE – удаление взаимодействия (мягкое)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -138,7 +137,6 @@ export async function DELETE(
     return NextResponse.json({ success: false, error: 'interactionId required' }, { status: 400 });
   }
 
-  // Проверяем, что взаимодействие принадлежит пользователю и контакту
   const interaction = await prisma.interaction.findFirst({
     where: { id: interactionId, contact_id: contactId, user_id: user.id, deleted_at: null },
   });
@@ -146,13 +144,11 @@ export async function DELETE(
     return NextResponse.json({ success: false, error: 'Interaction not found' }, { status: 404 });
   }
 
-  // Мягкое удаление
   await prisma.interaction.update({
     where: { id: interactionId },
     data: { deleted_at: new Date() },
   });
 
-  // Пересчитываем total_interactions и last_interaction_date
   const remainingInteractions = await prisma.interaction.findMany({
     where: { contact_id: contactId, deleted_at: null },
     orderBy: { started_at: 'desc' },

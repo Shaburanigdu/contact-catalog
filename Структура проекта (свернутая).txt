@@ -36,6 +36,8 @@
     │   │   │   ├── restore/
     │   │   │   ├── timeline/
     │   │   │   └── route.ts
+    │   │   ├── relationship-types/
+    │   │   │   └── route.ts
     │   │   ├── stats/
     │   │   │   └── route.ts
     │   │   ├── trash/
@@ -58,6 +60,8 @@
     │   ├── forgot-password/
     │   │   └── route.ts
     │   ├── interaction-types/
+    │   │   ├── [id]/
+    │   │   │   └── route.ts
     │   │   └── route.ts
     │   ├── notifications/
     │   │   ├── [id]/

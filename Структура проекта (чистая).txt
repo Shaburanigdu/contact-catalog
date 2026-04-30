@@ -45,6 +45,8 @@ contact-catalog/
 │   │   │   │   ├── timeline/
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── route.ts
+│   │   │   ├── relationship-types/
+│   │   │   │   └── route.ts
 │   │   │   ├── stats/
 │   │   │   │   └── route.ts
 │   │   │   ├── trash/
@@ -68,6 +70,8 @@ contact-catalog/
 │   │   ├── forgot-password/
 │   │   │   └── route.ts
 │   │   ├── interaction-types/
+│   │   │   ├── [id]/
+│   │   │   │   └── route.ts
 │   │   │   └── route.ts
 │   │   ├── notifications/
 │   │   │   ├── [id]/

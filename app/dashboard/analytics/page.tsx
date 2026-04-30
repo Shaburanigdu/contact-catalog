@@ -39,6 +39,40 @@ interface AnalyticsData {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d']
 
+const translateMonth = (monthStr: string): string => {
+  const parts = monthStr.split(' ')
+  const monthEng = parts[0]
+  const year = parts[1] ? ` ${parts[1]}` : ''
+
+  const months: Record<string, string> = {
+    January: 'Январь',
+    February: 'Февраль',
+    March: 'Март',
+    April: 'Апрель',
+    May: 'Май',
+    June: 'Июнь',
+    July: 'Июль',
+    August: 'Август',
+    September: 'Сентябрь',
+    October: 'Октябрь',
+    November: 'Ноябрь',
+    December: 'Декабрь',
+    Jan: 'Янв',
+    Feb: 'Фев',
+    Mar: 'Мар',
+    Apr: 'Апр',
+    Jun: 'Июн',
+    Jul: 'Июл',
+    Aug: 'Авг',
+    Sep: 'Сен',
+    Oct: 'Окт',
+    Nov: 'Ноя',
+    Dec: 'Дек',
+  }
+  const monthRu = months[monthEng] || monthEng
+  return monthRu + year
+}
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -72,6 +106,11 @@ export default function AnalyticsPage() {
     return <div className="p-6 text-center text-red-500">Не удалось загрузить аналитику</div>
   }
 
+  const interactionsData = data.interactionsByMonth.map(item => ({
+    ...item,
+    month: translateMonth(item.month),
+  }))
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -79,7 +118,6 @@ export default function AnalyticsPage() {
         <p className="text-gray-600 mt-1">Статистика и тренды ваших контактов и событий</p>
       </div>
 
-      {/* Карточки-киоски */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-2">
@@ -115,7 +153,6 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* График взаимодействий по месяцам */}
       <Card>
         <CardHeader>
           <CardTitle>Динамика взаимодействий</CardTitle>
@@ -123,7 +160,7 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data.interactionsByMonth}>
+            <LineChart data={interactionsData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
@@ -135,7 +172,6 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      {/* Две колонки: города и типы отношений */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -151,7 +187,11 @@ export default function AnalyticsPage() {
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
-                  label
+                  label={({ payload }: any) => {
+                    if (!payload) return ''
+                    return `${payload.city}: ${payload.count}`
+                  }}
+                  fontSize={12}
                 >
                   {data.contactsByCity.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -174,14 +214,13 @@ export default function AnalyticsPage() {
                 <XAxis type="number" />
                 <YAxis dataKey="relationship" type="category" width={100} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#82ca9d" />
+                <Bar dataKey="count" fill="#82ca9d" name="Количество" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Теги (облако или горизонтальная гистограмма) */}
       {data.contactsByTag.length > 0 && (
         <Card>
           <CardHeader>
