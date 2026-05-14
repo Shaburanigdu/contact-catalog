@@ -43,8 +43,7 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Ошибка регистрации')
       }
 
-      router.push('/dashboard')
-      router.refresh()
+      router.push('/dashboard');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Произошла ошибка')
     } finally {

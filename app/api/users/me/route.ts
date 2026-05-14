@@ -34,15 +34,15 @@ export async function GET(request: NextRequest) {
         id: true,
         email: true,
         username: true,
-        full_name: true,        // В схеме есть это поле (String?)
-        avatar_url: true,       // В схеме есть это поле (String?)
-        settings: true,         // В схеме есть это поле (Json?)
-        created_at: true,       // В схеме есть это поле (DateTime?)
-        // Дополнительные поля:
-        timezone: true,         // String? (default: "UTC")
-        language: true,         // String? (default: "ru")
-        last_login_at: true,    // DateTime?
-        updated_at: true,       // DateTime?
+        email_verified: true,
+        full_name: true,
+        avatar_url: true,
+        settings: true,
+        timezone: true,
+        language: true,
+        created_at: true,
+        updated_at: true,
+        last_login_at: true,
       }
     })
 

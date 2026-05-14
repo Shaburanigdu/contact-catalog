@@ -22,6 +22,7 @@ import {
   HeartHandshake,
 } from 'lucide-react'
 
+
 interface DashboardStats {
   totalContacts?: number
   contactsByCity?: Array<{ city: string; count: number }>

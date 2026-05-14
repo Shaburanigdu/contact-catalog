@@ -24,12 +24,12 @@ contact-catalog/
 │   │   │   │   └── route.ts
 │   │   │   ├── reset-password/
 │   │   │   │   └── route.ts
-│   │   │   ├── status/
-│   │   │   │   └── route.ts
-│   │   │   └── verify/
+│   │   │   └── status/
 │   │   │       └── route.ts
 │   │   ├── contacts/
 │   │   │   ├── [id]/
+│   │   │   │   ├── analytics/
+│   │   │   │   │   └── route.ts
 │   │   │   │   ├── hard/
 │   │   │   │   │   └── route.ts
 │   │   │   │   ├── interactions/
@@ -128,6 +128,7 @@ contact-catalog/
 │   ├── reset-password/
 │   │   └── [token]/
 │   │       └── page.tsx
+│   ├── favicon.ico
 │   ├── globals.css
 │   ├── layout.tsx
 │   └── page.tsx
@@ -183,6 +184,7 @@ contact-catalog/
 │   ├── api-client.ts
 │   ├── auth.ts
 │   ├── constants.ts
+│   ├── email.ts
 │   ├── embedding.ts
 │   ├── logger.ts
 │   ├── middleware-auth.ts
@@ -197,30 +199,31 @@ contact-catalog/
 │   │   └── migration_lock.toml
 │   └── schema.prisma
 ├── public/
-│   └── uploads/
-│       └── 2026/
-│           ├── 02/
-│           │   ├── 335ace0d-3ba5-4d51-bb50-d90909bebfbc.png
-│           │   ├── 6ea8420e-6bc7-4a7b-b7fd-4458bea4b4fc.png
-│           │   ├── 7d6a27bb-3c4d-4667-8778-5801c419ba98.png
-│           │   ├── c2a2473d-7213-40bb-b26b-8ce308c5b524.png
-│           │   ├── e1e72f96-f454-4772-a13e-77abfc0fb02c.png
-│           │   ├── fc15c06f-4189-4bd0-b283-f44214862b69.png
-│           │   ├── thumb_335ace0d-3ba5-4d51-bb50-d90909bebfbc.png
-│           │   ├── thumb_6ea8420e-6bc7-4a7b-b7fd-4458bea4b4fc.png
-│           │   ├── thumb_7d6a27bb-3c4d-4667-8778-5801c419ba98.png
-│           │   ├── thumb_c2a2473d-7213-40bb-b26b-8ce308c5b524.png
-│           │   ├── thumb_e1e72f96-f454-4772-a13e-77abfc0fb02c.png
-│           │   └── thumb_fc15c06f-4189-4bd0-b283-f44214862b69.png
-│           └── 03/
-│               ├── 1a31cdc7-2010-4169-bc23-2f5a531060cb.png
-│               ├── 5b26d364-9402-4e4f-b6a0-b60430ec823a.jpg
-│               ├── 5c53b09d-9c32-4e6d-9e87-15131fc71c2b.png
-│               ├── 76f45cbd-9fff-4c69-bb14-716efccc8675.jpg
-│               ├── thumb_1a31cdc7-2010-4169-bc23-2f5a531060cb.png
-│               ├── thumb_5b26d364-9402-4e4f-b6a0-b60430ec823a.jpg
-│               ├── thumb_5c53b09d-9c32-4e6d-9e87-15131fc71c2b.png
-│               └── thumb_76f45cbd-9fff-4c69-bb14-716efccc8675.jpg
+│   ├── uploads/
+│   │   └── 2026/
+│   │       ├── 02/
+│   │       │   ├── 335ace0d-3ba5-4d51-bb50-d90909bebfbc.png
+│   │       │   ├── 6ea8420e-6bc7-4a7b-b7fd-4458bea4b4fc.png
+│   │       │   ├── 7d6a27bb-3c4d-4667-8778-5801c419ba98.png
+│   │       │   ├── c2a2473d-7213-40bb-b26b-8ce308c5b524.png
+│   │       │   ├── e1e72f96-f454-4772-a13e-77abfc0fb02c.png
+│   │       │   ├── fc15c06f-4189-4bd0-b283-f44214862b69.png
+│   │       │   ├── thumb_335ace0d-3ba5-4d51-bb50-d90909bebfbc.png
+│   │       │   ├── thumb_6ea8420e-6bc7-4a7b-b7fd-4458bea4b4fc.png
+│   │       │   ├── thumb_7d6a27bb-3c4d-4667-8778-5801c419ba98.png
+│   │       │   ├── thumb_c2a2473d-7213-40bb-b26b-8ce308c5b524.png
+│   │       │   ├── thumb_e1e72f96-f454-4772-a13e-77abfc0fb02c.png
+│   │       │   └── thumb_fc15c06f-4189-4bd0-b283-f44214862b69.png
+│   │       └── 03/
+│   │           ├── 1a31cdc7-2010-4169-bc23-2f5a531060cb.png
+│   │           ├── 5b26d364-9402-4e4f-b6a0-b60430ec823a.jpg
+│   │           ├── 5c53b09d-9c32-4e6d-9e87-15131fc71c2b.png
+│   │           ├── 76f45cbd-9fff-4c69-bb14-716efccc8675.jpg
+│   │           ├── thumb_1a31cdc7-2010-4169-bc23-2f5a531060cb.png
+│   │           ├── thumb_5b26d364-9402-4e4f-b6a0-b60430ec823a.jpg
+│   │           ├── thumb_5c53b09d-9c32-4e6d-9e87-15131fc71c2b.png
+│   │           └── thumb_76f45cbd-9fff-4c69-bb14-716efccc8675.jpg
+│   └── favicon.ico
 ├── scripts/
 │   ├── check-all-tables.js
 │   ├── check-dbname.js
@@ -243,6 +246,7 @@ contact-catalog/
 ├── .gitignore
 ├── audit-report.json
 ├── components.json
+├── icon.png
 ├── middleware.ts
 ├── next-env.d.ts
 ├── next.config.js

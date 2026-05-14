@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     // Хэширование пароля
     const hashedPassword = await hashPassword(validatedData.password);
 
-    // Создание пользователя
+    // Создание пользователя (без верификации)
     const user = await prisma.user.create({
       data: {
         email: validatedData.email,
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 15 * 60, // 15 минут
+      maxAge: 15 * 60,
       path: '/',
     });
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 дней
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
 
