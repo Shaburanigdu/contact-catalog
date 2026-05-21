@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/request-utils';
 import { prisma } from '@/lib/prisma';
+import { getEmbedding } from '@/lib/embedding';
 
 export async function GET(
   request: NextRequest,
@@ -117,6 +118,22 @@ export async function POST(
     where: { id: interaction.id },
     include: { interaction_types: true },
   });
+
+  // Генерация эмбеддинга для взаимодействия
+  const interactionTypeName = created?.interaction_types?.name || '';
+  const textForEmbedding = `${title || ''} ${description || ''} ${interactionTypeName}`.trim();
+  if (textForEmbedding) {
+    try {
+      const embedding = await getEmbedding(textForEmbedding);
+      await prisma.$executeRaw`
+        UPDATE "Contact_catalog".interactions
+        SET embedding = ${JSON.stringify(embedding)}::vector
+        WHERE id = ${interaction.id}::uuid
+      `;
+    } catch (err) {
+      console.error('Failed to generate embedding for interaction:', err);
+    }
+  }
 
   return NextResponse.json({ success: true, data: created });
 }

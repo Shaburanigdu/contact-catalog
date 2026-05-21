@@ -48,12 +48,38 @@ async function embedEvents() {
   }
 }
 
+async function embedInteractions() {
+  const interactions = await prisma.interaction.findMany({
+    where: { deleted_at: null },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      quick_notes: true,
+      interaction_types: { select: { name: true } }
+    },
+  });
+  for (const interaction of interactions) {
+    const text = `${interaction.title || ''} ${interaction.description || ''} ${interaction.quick_notes || ''} ${interaction.interaction_types?.name || ''}`.trim();
+    if (!text) continue;
+    const embedding = await getEmbedding(text);
+    await prisma.$executeRaw`
+      UPDATE "Contact_catalog".interactions
+      SET embedding = ${JSON.stringify(embedding)}::vector
+      WHERE id = ${interaction.id}::uuid
+    `;
+    console.log(`✅ Interaction ${interaction.id}`);
+  }
+}
+
 async function main() {
   console.log('Generating embeddings for contacts...');
   await embedContacts();
   console.log('Generating embeddings for events...');
   await embedEvents();
-  // Добавьте embedInteractions и embedNotes по аналогии, если нужно
+  console.log('Generating embeddings for interactions...');
+  await embedInteractions();
+  // При необходимости добавить embedNotes
   console.log('Done');
 }
 

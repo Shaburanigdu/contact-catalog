@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useRef, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, Home, XCircle, Filter, Check, ChevronsUpDown } from 'lucide-react';
@@ -74,6 +74,63 @@ export default function ContactsPage({
     lastInteractionDays: (params.last_interaction_days as string) || '',
   });
 
+  // ---------- debounce для поля "Поиск" ----------
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const [debouncedSearch, setDebouncedSearch] = useState(filters.search);
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, 400);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (debouncedSearch !== filters.search) {
+      handleFilterChange('search', debouncedSearch);
+    }
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    if (filters.search !== searchInput) {
+      setSearchInput(filters.search);
+      setDebouncedSearch(filters.search);
+    }
+  }, [filters.search]);
+
+  // ---------- debounce для поля "Город" ----------
+  const [cityInput, setCityInput] = useState(filters.city);
+  const [debouncedCity, setDebouncedCity] = useState(filters.city);
+  const cityTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (cityTimerRef.current) clearTimeout(cityTimerRef.current);
+    cityTimerRef.current = setTimeout(() => {
+      setDebouncedCity(cityInput);
+    }, 400);
+    return () => {
+      if (cityTimerRef.current) clearTimeout(cityTimerRef.current);
+    };
+  }, [cityInput]);
+
+  useEffect(() => {
+    if (debouncedCity !== filters.city) {
+      handleFilterChange('city', debouncedCity);
+    }
+  }, [debouncedCity]);
+
+  useEffect(() => {
+    if (filters.city !== cityInput) {
+      setCityInput(filters.city);
+      setDebouncedCity(filters.city);
+    }
+  }, [filters.city]);
+  // ---------------------------------------------
+
   const [availableTags, setAvailableTags] = useState<
     { id: string; name: string; color: string }[]
   >([]);
@@ -141,11 +198,24 @@ export default function ContactsPage({
       tagIds: [],
       lastInteractionDays: '',
     });
+    // Сброс debounce-полей
+    setSearchInput('');
+    setDebouncedSearch('');
+    setCityInput('');
+    setDebouncedCity('');
     router.push('/dashboard/contacts');
   };
 
   const clearFilter = (key: keyof typeof filters) => {
     const newValue = key === 'tagIds' ? [] : '';
+    if (key === 'search') {
+      setSearchInput('');
+      setDebouncedSearch('');
+    }
+    if (key === 'city') {
+      setCityInput('');
+      setDebouncedCity('');
+    }
     handleFilterChange(key, newValue);
   };
 
@@ -228,27 +298,28 @@ export default function ContactsPage({
           )}
         </div>
 
-        {/* Поиск */}
+        {/* Поиск с debounce */}
         <div className="w-full">
           <label className="text-sm font-medium mb-1 block">Поиск</label>
           <Input
             placeholder="Имя, email, компания, псевдоним..."
-            value={filters.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
 
-        {/* Остальные фильтры */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">Город</label>
-            <Input
-              placeholder="Город"
-              value={filters.city}
-              onChange={(e) => handleFilterChange('city', e.target.value)}
-            />
-          </div>
+        {/* Город с debounce */}
+        <div className="w-full md:w-auto">
+          <label className="text-sm font-medium mb-1 block">Город</label>
+          <Input
+            placeholder="Город"
+            value={cityInput}
+            onChange={(e) => setCityInput(e.target.value)}
+          />
+        </div>
 
+        {/* Остальные фильтры (без debounce) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-sm font-medium mb-1 block">Тип отношений</label>
             <Popover open={relTypeOpen} onOpenChange={setRelTypeOpen}>

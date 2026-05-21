@@ -52,7 +52,29 @@ export async function POST(request: NextRequest) {
         AND title ILIKE ${`%${cleanQuery}%`}
     `;
 
-    // 4. Векторный поиск по контактам (добиваем до 10)
+    // 4. Точный поиск по взаимодействиям (только текущего пользователя)
+    const exactInteractions = await prisma.$queryRaw<any[]>`
+      SELECT
+        i.id,
+        i.title,
+        i.description,
+        i.contact_id,
+        'interaction' as type,
+        1.0 as similarity,
+        c.first_name || ' ' || COALESCE(c.last_name, '') as contact_name
+      FROM "Contact_catalog".interactions i
+      LEFT JOIN "Contact_catalog".contacts c ON i.contact_id = c.id
+      WHERE i.deleted_at IS NULL
+        AND i.user_id = ${userId}::uuid
+        AND (
+          i.title ILIKE ${`%${cleanQuery}%`} OR
+          i.description ILIKE ${`%${cleanQuery}%`} OR
+          i.quick_notes ILIKE ${`%${cleanQuery}%`}
+        )
+      LIMIT 10
+    `;
+
+    // 5. Векторный поиск по контактам (добиваем до 10)
     let vectorContacts: any[] = [];
     if (exactContacts.length < 10) {
       const embedding = await getEmbedding(cleanQuery);
@@ -72,7 +94,7 @@ export async function POST(request: NextRequest) {
       `;
     }
 
-    // 5. Векторный поиск по событиям (добиваем до 10)
+    // 6. Векторный поиск по событиям (добиваем до 10)
     let vectorEvents: any[] = [];
     if (exactEvents.length < 10) {
       const eventEmbedding = await getEmbedding(cleanQuery);
@@ -91,8 +113,38 @@ export async function POST(request: NextRequest) {
       `;
     }
 
-    // 6. Объединение и устранение дубликатов
-    const allResults = [...exactContacts, ...exactEvents, ...vectorContacts, ...vectorEvents];
+    // 7. Векторный поиск по взаимодействиям (добиваем до 10)
+    let vectorInteractions: any[] = [];
+    if (exactInteractions.length < 10) {
+      const interactionEmbedding = await getEmbedding(cleanQuery);
+      vectorInteractions = await prisma.$queryRaw<any[]>`
+        SELECT
+          i.id,
+          i.title,
+          i.description,
+          i.contact_id,
+          'interaction' as type,
+          1 - (i.embedding <=> ${JSON.stringify(interactionEmbedding)}::vector) as similarity,
+          c.first_name || ' ' || COALESCE(c.last_name, '') as contact_name
+        FROM "Contact_catalog".interactions i
+        LEFT JOIN "Contact_catalog".contacts c ON i.contact_id = c.id
+        WHERE i.deleted_at IS NULL
+          AND i.user_id = ${userId}::uuid
+          AND i.embedding IS NOT NULL
+        ORDER BY similarity DESC
+        LIMIT ${10 - exactInteractions.length}
+      `;
+    }
+
+    // 8. Объединение и устранение дубликатов
+    const allResults = [
+      ...exactContacts,
+      ...exactEvents,
+      ...exactInteractions,
+      ...vectorContacts,
+      ...vectorEvents,
+      ...vectorInteractions,
+    ];
     const resultsMap = new Map<string, any>();
     for (const item of allResults) {
       const key = `${item.type}_${item.id}`;

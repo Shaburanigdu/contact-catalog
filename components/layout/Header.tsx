@@ -94,6 +94,11 @@ export function Header() {
       router.push(`/dashboard/contacts/${result.id}`);
     } else if (result.type === 'event') {
       router.push(`/dashboard/events/${result.id}`);
+    } else if (result.type === 'interaction') {
+      // Переход на страницу контакта, к которому относится взаимодействие
+      if (result.contact_id) {
+        router.push(`/dashboard/contacts/${result.contact_id}`);
+      }
     }
   };
 
@@ -166,17 +171,28 @@ export function Header() {
                   <div className="mt-3 max-h-80 overflow-auto border-t border-gray-100 pt-2">
                     {searchResults.map((result: any) => (
                       <div
-                        key={result.id}
+                        key={`${result.type}_${result.id}`}
                         onClick={() => handleSelect(result)}
                         className="cursor-pointer px-3 py-2 hover:bg-gray-100 rounded-md transition-colors"
                       >
                         <div className="font-medium">
                           {result.type === 'contact'
                             ? `${result.first_name} ${result.last_name || ''}`
-                            : result.title}
+                            : result.type === 'event'
+                            ? result.title
+                            : result.title || 'Взаимодействие'}
                         </div>
-                        <div className="text-xs text-gray-500 capitalize">
-                          {result.type === 'contact' ? 'Контакт' : 'Событие'}
+                        <div className="text-xs text-gray-500">
+                          {result.type === 'contact' 
+                            ? 'Контакт' 
+                            : result.type === 'event' 
+                            ? 'Событие' 
+                            : 'Взаимодействие'}
+                          {result.type === 'interaction' && result.contact_name && (
+                            <span className="ml-1 text-gray-400">
+                              — {result.contact_name}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
