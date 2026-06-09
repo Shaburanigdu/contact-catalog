@@ -8,6 +8,22 @@ import {
 import { prisma } from '@/lib/prisma'
 import { getEmbedding } from '@/lib/embedding';
 
+/*
+ * Рекомендуемые индексы для улучшения производительности:
+ * 
+ * -- Простые индексы для фильтрации
+ * CREATE INDEX idx_contacts_city ON "Contact_catalog".contacts (city);
+ * CREATE INDEX idx_contacts_relationship_type ON "Contact_catalog".contacts (relationship_type);
+ * CREATE INDEX idx_contacts_last_interaction_date ON "Contact_catalog".contacts (last_interaction_date) WHERE deleted_at IS NULL;
+ * 
+ * -- GIN индекс для полнотекстового поиска
+ * CREATE INDEX idx_contacts_search_vector ON "Contact_catalog".contacts 
+ * USING GIN (to_tsvector('russian', 
+ *   coalesce(first_name,'') || ' ' || coalesce(last_name,'') || ' ' || 
+ *   coalesce(nickname,'') || ' ' || coalesce(email,'') || ' ' || 
+ *   coalesce(company,'') || ' ' || coalesce(job_title,'')
+ * ));
+ */
 
 // GET /api/contacts - Получить контакты пользователя
 export async function GET(request: NextRequest) {
@@ -23,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const limit = parseInt(searchParams.get('limit') || '12') // уменьшено до 12
     const skip = (page - 1) * limit
 
     const search = searchParams.get('search') || undefined
@@ -40,7 +56,6 @@ export async function GET(request: NextRequest) {
       deleted_at: null,
     }
 
-    // Массив дополнительных условий для AND (используется для сложных фильтров)
     const andConditions: any[] = []
 
     // Простые равенства
@@ -50,19 +65,40 @@ export async function GET(request: NextRequest) {
     if (country) where.country = country
     if (relationship_type) where.relationship_type = relationship_type
 
-    // Поиск по тексту (OR)
+    // Полнотекстовый поиск (вместо LIKE)
     if (search) {
-      where.OR = [
-        { first_name: { contains: search, mode: 'insensitive' } },
-        { last_name: { contains: search, mode: 'insensitive' } },
-        { nickname: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { company: { contains: search, mode: 'insensitive' } },
-        { job_title: { contains: search, mode: 'insensitive' } },
-      ]
+      const searchQuery = search.trim()
+      if (searchQuery) {
+        // Получаем ID контактов через полнотекстовый поиск
+        const ids = await prisma.$queryRaw<{ id: string }[]>`
+          SELECT id FROM "Contact_catalog".contacts
+          WHERE to_tsvector('russian', 
+            coalesce(first_name,'') || ' ' || 
+            coalesce(last_name,'') || ' ' || 
+            coalesce(nickname,'') || ' ' || 
+            coalesce(email,'') || ' ' || 
+            coalesce(company,'') || ' ' || 
+            coalesce(job_title,'')
+          ) @@ plainto_tsquery('russian', ${searchQuery})
+          AND user_id = ${user.id}::uuid
+          AND deleted_at IS NULL
+        `
+        const contactIds = ids.map(row => row.id)
+        if (contactIds.length === 0) {
+          // Нет результатов – возвращаем пустой список сразу
+          return NextResponse.json<ApiResponse>({
+            success: true,
+            data: {
+              contacts: [],
+              pagination: { page, limit, total: 0, pages: 0 }
+            }
+          })
+        }
+        where.id = { in: contactIds }
+      }
     }
 
-    // Фильтр по тегам (приоритет у tagIds)
+    // Фильтр по тегам
     if (tagIds && tagIds.length > 0) {
       where.contact_tags = {
         some: {
@@ -70,7 +106,6 @@ export async function GET(request: NextRequest) {
         }
       }
     } else if (tagName) {
-      // старый вариант (по имени) – для обратной совместимости
       where.contact_tags = {
         some: {
           tag: { name: tagName }
@@ -90,7 +125,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // *** фильтр "давно не общались" (включает NULL) ***
+    // Фильтр "давно не общались"
     if (lastInteractionDays && !isNaN(Number(lastInteractionDays))) {
       const days = Number(lastInteractionDays)
       const cutoffDate = new Date()
@@ -104,28 +139,21 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Если есть дополнительные AND-условия, перестраиваем весь where в AND
+    // Объединяем дополнительные AND-условия
     if (andConditions.length > 0) {
-      // Извлекаем все простые условия из where
       const { user_id, deleted_at, ...restWhere } = where
-
-      // Базовые условия (обязательные)
       const baseConditions = [
         { user_id },
         { deleted_at },
         ...Object.entries(restWhere).map(([key, value]) => ({ [key]: value }))
       ]
-
-      // Собираем всё в AND
       where.AND = [...baseConditions, ...andConditions]
-
-      // Удаляем старые плоские поля, чтобы Prisma использовала только AND
       delete where.user_id
       delete where.deleted_at
       Object.keys(restWhere).forEach(key => delete where[key])
     }
 
-    // Выполняем запросы
+    // Выполняем запросы с ограниченным набором полей
     const [contacts, total] = await Promise.all([
       prisma.contact.findMany({
         where,
@@ -136,35 +164,15 @@ export async function GET(request: NextRequest) {
           id: true,
           first_name: true,
           last_name: true,
-          middle_name: true,
           nickname: true,
           email: true,
           phone: true,
-          phone_secondary: true,
-          website: true,
-          gender: true,
-          date_of_birth: true,
-          country: true,
           city: true,
-          address: true,
-          postal_code: true,
           company: true,
           job_title: true,
-          department: true,
-          relationship_type: true,
-          relationship_level: true,
-          trust_level: true,
-          how_we_met: true,
-          met_date: true,
-          met_location: true,
-          personal_notes: true,
-          interests: true,
-          important_facts: true,
           avatar_url: true,
           last_interaction_date: true,
           total_interactions: true,
-          created_at: true,
-          updated_at: true,
           contact_tags: {
             select: {
               tags: {
@@ -182,7 +190,7 @@ export async function GET(request: NextRequest) {
       prisma.contact.count({ where }),
     ])
 
-    // Преобразуем контакты
+    // Преобразуем формат тегов
     const formattedContacts = contacts.map(contact => ({
       ...contact,
       tags: contact.contact_tags.map(ct => ct.tags),
@@ -210,7 +218,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/contacts - Создать новый контакт (полная версия)
+// POST /api/contacts - Создать новый контакт (без изменений, оставлен как в оригинале)
 export async function POST(request: NextRequest) {
   try {
     const { user, error } = await authenticateRequest(request)
@@ -224,7 +232,6 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    // Валидация данных
     const validationErrors = validateContactData(body)
     if (validationErrors.length > 0) {
       return NextResponse.json<ApiResponse>(
@@ -233,7 +240,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Проверка тегов, если они есть
     if (body.tags && Array.isArray(body.tags) && body.tags.length > 0) {
       const validTags = await prisma.tag.findMany({
         where: {
@@ -297,7 +303,6 @@ export async function POST(request: NextRequest) {
       data: contactData,
     })
 
-    // Генерация эмбеддинга для нового контакта
     const textForEmbedding = `${contact.first_name} ${contact.last_name || ''} ${contact.company || ''} ${contact.personal_notes || ''}`.trim();
     if (textForEmbedding) {
       try {
@@ -309,7 +314,6 @@ export async function POST(request: NextRequest) {
         `;
       } catch (err) {
         console.error('Failed to generate embedding for contact:', err);
-        // не прерываем выполнение, эмбеддинг можно будет сгенерировать позже
       }
     }
 
@@ -318,7 +322,6 @@ export async function POST(request: NextRequest) {
         contact_id: contact.id,
         tag_id: tagId,
       }))
-
       await prisma.contactTag.createMany({
         data: tagConnections,
         skipDuplicates: true

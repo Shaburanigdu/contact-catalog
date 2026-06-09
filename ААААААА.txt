@@ -1,0 +1,451 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["Contact_catalog"]
+}
+
+model User {
+  id                        String                @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  email                     String                @unique @db.VarChar(255)
+  username                  String?               @unique @db.VarChar(100)
+  password_hash             String                @db.VarChar(255)
+  email_verified            Boolean?              @default(false)
+  email_verification_token  String?               @db.VarChar(255)
+  password_reset_token      String?               @db.VarChar(255)
+  password_reset_expires_at DateTime?             @db.Timestamptz(6)
+  full_name                 String?               @db.VarChar(255)
+  avatar_url                String?               @db.VarChar(500)
+  timezone                  String?               @default("UTC") @db.VarChar(50)
+  language                  String?               @default("ru") @db.VarChar(10)
+  settings                  Json?                 @default("{\"default_view\": \"list\", \"notifications\": true, \"privacy_level\": \"private\"}")
+  created_at                DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?             @default(now()) @db.Timestamptz(6)
+  deleted_at                DateTime?             @db.Timestamptz(6)
+  last_login_at             DateTime?             @db.Timestamptz(6)
+  audit_logs                AuditLog[]
+  contact_relationships     ContactRelationship[]
+  contacts                  Contact[]
+  event_participants        EventParticipant[]
+  event_types               EventType[]
+  events                    Event[]
+  interaction_types         InteractionType[]
+  interactions              Interaction[]
+  media                     Media[]
+  notes                     Note[]
+  notification_history      NotificationHistory[]
+  reminders                 Reminder[]
+  tags                      Tag[]
+
+  @@map("users")
+  @@schema("Contact_catalog")
+}
+
+model AuditLog {
+  id          String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id     String?   @db.Uuid
+  action      String    @db.VarChar(50)
+  entity_type String    @db.VarChar(50)
+  entity_id   String?   @db.Uuid
+  old_values  Json?
+  new_values  Json?
+  ip_address  String?   @db.Inet
+  user_agent  String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  users       User?     @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at], map: "idx_audit_created")
+  @@index([entity_type, entity_id], map: "idx_audit_entity")
+  @@index([user_id], map: "idx_audit_user")
+  @@map("audit_logs")
+  @@schema("Contact_catalog")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Contact {
+  id                                                                      String                 @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id                                                                 String                 @db.Uuid
+  first_name                                                              String                 @db.VarChar(100)
+  last_name                                                               String?                @db.VarChar(100)
+  middle_name                                                             String?                @db.VarChar(100)
+  nickname                                                                String?                @db.VarChar(100)
+  email                                                                   String?                @db.VarChar(255)
+  phone                                                                   String?                @db.VarChar(50)
+  phone_secondary                                                         String?                @db.VarChar(50)
+  website                                                                 String?                @db.VarChar(500)
+  gender                                                                  String?                @db.VarChar(20)
+  date_of_birth                                                           DateTime?              @db.Date
+  country                                                                 String?                @db.VarChar(100)
+  city                                                                    String?                @db.VarChar(100)
+  address                                                                 String?
+  postal_code                                                             String?                @db.VarChar(20)
+  company                                                                 String?                @db.VarChar(255)
+  job_title                                                               String?                @db.VarChar(255)
+  department                                                              String?                @db.VarChar(255)
+  relationship_type                                                       String?                @default("Друг") @db.VarChar(50)
+  relationship_level                                                      Int?
+  trust_level                                                             Int?
+  how_we_met                                                              String?
+  met_date                                                                DateTime?              @db.Date
+  met_location                                                            String?                @db.VarChar(255)
+  personal_notes                                                          String?
+  interests                                                               Json?
+  important_facts                                                         Json?
+  avatar_url                                                              String?                @db.VarChar(500)
+  last_interaction_date                                                   DateTime?              @db.Timestamptz(6)
+  total_interactions                                                      Int?                   @default(0)
+  created_at                                                              DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at                                                              DateTime?              @default(now()) @db.Timestamptz(6)
+  deleted_at                                                              DateTime?              @db.Timestamptz(6)
+  embedding                                                               Unsupported("vector")?
+  contact_relationships_contact_relationships_source_contact_idTocontacts ContactRelationship[]  @relation("contact_relationships_source_contact_idTocontacts")
+  contact_relationships_contact_relationships_target_contact_idTocontacts ContactRelationship[]  @relation("contact_relationships_target_contact_idTocontacts")
+  contact_tags                                                            ContactTag[]
+  users                                                                   User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  event_participants                                                      EventParticipant[]
+  interactions                                                            Interaction[]
+  media                                                                   Media[]
+  notes                                                                   Note[]
+  reminders                                                               Reminder[]
+
+  @@index([user_id, city], map: "idx_contacts_city")
+  @@index([user_id, email], map: "idx_contacts_email")
+  @@index([user_id, last_interaction_date], map: "idx_contacts_last_interaction")
+  @@index([user_id, first_name, last_name], map: "idx_contacts_name")
+  @@index([user_id, phone], map: "idx_contacts_phone")
+  @@index([user_id, relationship_type], map: "idx_contacts_relationship")
+  @@index([user_id], map: "idx_contacts_user")
+  @@index([embedding], map: "idx_contacts_embedding")
+  @@index([relationship_type], map: "idx_contacts_relationship_type")
+  @@map("contacts")
+  @@schema("Contact_catalog")
+}
+
+model ContactRelationship {
+  id                                                         String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id                                                    String    @db.Uuid
+  source_contact_id                                          String    @db.Uuid
+  target_contact_id                                          String    @db.Uuid
+  relationship_type                                          String    @db.VarChar(100)
+  reciprocal_relationship                                    String?   @db.VarChar(100)
+  notes                                                      String?
+  strength                                                   Int?
+  created_at                                                 DateTime? @default(now()) @db.Timestamptz(6)
+  contacts_contact_relationships_source_contact_idTocontacts Contact   @relation("contact_relationships_source_contact_idTocontacts", fields: [source_contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contacts_contact_relationships_target_contact_idTocontacts Contact   @relation("contact_relationships_target_contact_idTocontacts", fields: [target_contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                                                      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, source_contact_id, target_contact_id, relationship_type], map: "idx_unique_contact_relationship")
+  @@index([source_contact_id], map: "idx_contact_rels_source")
+  @@index([target_contact_id], map: "idx_contact_rels_target")
+  @@index([user_id], map: "idx_contact_rels_user")
+  @@map("contact_relationships")
+  @@schema("Contact_catalog")
+}
+
+model Tag {
+  id           String       @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id      String       @db.Uuid
+  name         String       @db.VarChar(100)
+  color        String?      @default("#3B82F6") @db.VarChar(7)
+  icon         String?      @db.VarChar(50)
+  description  String?
+  is_system    Boolean?     @default(false)
+  created_at   DateTime?    @default(now()) @db.Timestamptz(6)
+  scope        String?      @default("both") @db.VarChar(20)
+  contact_tags ContactTag[]
+  event_tags   EventTag[]
+  users        User         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, name], map: "idx_tags_user_name")
+  @@index([user_id], map: "idx_tags_user")
+  @@map("tags")
+  @@schema("Contact_catalog")
+}
+
+model ContactTag {
+  contact_id String    @db.Uuid
+  tag_id     String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  contacts   Contact   @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tags       Tag       @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([contact_id, tag_id])
+  @@index([contact_id], map: "idx_contact_tags_contact")
+  @@index([tag_id], map: "idx_contact_tags_tag")
+  @@map("contact_tags")
+  @@schema("Contact_catalog")
+}
+
+model InteractionType {
+  id           String        @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id      String        @db.Uuid
+  name         String        @db.VarChar(100)
+  icon         String?       @db.VarChar(50)
+  color        String?       @db.VarChar(7)
+  is_system    Boolean?      @default(false)
+  created_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  users        User          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interactions Interaction[]
+
+  @@unique([user_id, name], map: "idx_interaction_types_user_name")
+  @@index([user_id], map: "idx_interaction_types_user")
+  @@map("interaction_types")
+  @@schema("Contact_catalog")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Interaction {
+  id                  String                 @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id             String                 @db.Uuid
+  contact_id          String                 @db.Uuid
+  interaction_type_id String?                @db.Uuid
+  title               String                 @db.VarChar(255)
+  description         String?
+  quick_notes         String?
+  started_at          DateTime               @db.Timestamptz(6)
+  ended_at            DateTime?              @db.Timestamptz(6)
+  duration_minutes    Int?
+  location            String?                @db.VarChar(255)
+  location_lat        Decimal?               @db.Decimal(10, 8)
+  location_lng        Decimal?               @db.Decimal(11, 8)
+  mood_before         Int?
+  mood_after          Int?
+  importance          Int?
+  created_at          DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?              @default(now()) @db.Timestamptz(6)
+  deleted_at          DateTime?              @db.Timestamptz(6)
+  embedding           Unsupported("vector")?
+  contacts            Contact                @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interaction_types   InteractionType?       @relation(fields: [interaction_type_id], references: [id], onUpdate: NoAction)
+  users               User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  media               Media[]
+  notes               Note[]
+  reminders           Reminder[]
+
+  @@index([contact_id], map: "idx_interactions_contact")
+  @@index([user_id, started_at], map: "idx_interactions_date")
+  @@index([interaction_type_id], map: "idx_interactions_type")
+  @@index([user_id], map: "idx_interactions_user")
+  @@map("interactions")
+  @@schema("Contact_catalog")
+}
+
+model Note {
+  id             String                 @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id        String                 @db.Uuid
+  contact_id     String?                @db.Uuid
+  event_id       String?                @db.Uuid
+  interaction_id String?                @db.Uuid
+  title          String?                @db.VarChar(255)
+  content        String
+  is_private     Boolean?               @default(false)
+  created_at     DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?              @default(now()) @db.Timestamptz(6)
+  deleted_at     DateTime?              @db.Timestamptz(6)
+  embedding      Unsupported("vector")?
+  events         Event?                 @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notes_event")
+  contacts       Contact?               @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interactions   Interaction?           @relation(fields: [interaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([contact_id], map: "idx_notes_contact")
+  @@index([created_at], map: "idx_notes_created")
+  @@index([user_id], map: "idx_notes_user")
+  @@map("notes")
+  @@schema("Contact_catalog")
+}
+
+model EventType {
+  id                       String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id                  String    @db.Uuid
+  name                     String    @db.VarChar(100)
+  icon                     String?   @db.VarChar(50)
+  color                    String?   @db.VarChar(7)
+  default_duration_minutes Int?
+  is_recurring_template    Boolean?  @default(false)
+  recurrence_pattern       Json?
+  created_at               DateTime? @default(now()) @db.Timestamptz(6)
+  is_system                Boolean   @default(false)
+  users                    User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  events                   Event[]
+
+  @@unique([user_id, name], map: "idx_event_types_user_name")
+  @@index([user_id], map: "idx_event_types_user")
+  @@map("event_types")
+  @@schema("Contact_catalog")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Event {
+  id                    String                 @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id               String                 @db.Uuid
+  event_type_id         String?                @db.Uuid
+  title                 String                 @db.VarChar(255)
+  description           String?
+  start_at              DateTime               @db.Timestamptz(6)
+  end_at                DateTime?              @db.Timestamptz(6)
+  is_all_day            Boolean?               @default(false)
+  timezone              String?                @db.VarChar(50)
+  is_recurring          Boolean?               @default(false)
+  recurrence_rule       String?                @db.VarChar(500)
+  recurrence_exceptions DateTime[]             @db.Date
+  parent_event_id       String?                @db.Uuid
+  location              String?                @db.VarChar(500)
+  location_lat          Decimal?               @db.Decimal(10, 8)
+  location_lng          Decimal?               @db.Decimal(11, 8)
+  status                String?                @default("scheduled") @db.VarChar(20)
+  is_public             Boolean?               @default(false)
+  created_at            DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?              @default(now()) @db.Timestamptz(6)
+  deleted_at            DateTime?              @db.Timestamptz(6)
+  embedding             Unsupported("vector")?
+  event_participants    EventParticipant[]
+  event_tags            EventTag[]
+  event_types           EventType?             @relation(fields: [event_type_id], references: [id], onUpdate: NoAction)
+  events                Event?                 @relation("eventsToevents", fields: [parent_event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_events          Event[]                @relation("eventsToevents")
+  users                 User                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  media                 Media[]
+  notes                 Note[]
+  reminders             Reminder[]
+
+  @@index([user_id, start_at], map: "idx_events_date")
+  @@index([is_recurring, start_at], map: "idx_events_recurring")
+  @@index([event_type_id], map: "idx_events_type")
+  @@index([user_id], map: "idx_events_user")
+  @@map("events")
+  @@schema("Contact_catalog")
+}
+
+model EventParticipant {
+  id          String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  event_id    String    @db.Uuid
+  contact_id  String    @db.Uuid
+  user_id     String    @db.Uuid
+  role        String?   @default("participant") @db.VarChar(50)
+  rsvp_status String?   @default("pending") @db.VarChar(20)
+  notes       String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  contacts    Contact   @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  events      Event     @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([event_id, contact_id], map: "idx_event_participants_event_contact")
+  @@index([contact_id], map: "idx_event_participants_contact")
+  @@index([event_id], map: "idx_event_participants_event")
+  @@index([user_id], map: "idx_event_participants_user")
+  @@map("event_participants")
+  @@schema("Contact_catalog")
+}
+
+model EventTag {
+  event_id   String    @db.Uuid
+  tag_id     String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  events     Event     @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tags       Tag       @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([event_id, tag_id])
+  @@index([event_id], map: "idx_event_tags_event")
+  @@index([tag_id], map: "idx_event_tags_tag")
+  @@map("event_tags")
+  @@schema("Contact_catalog")
+}
+
+model Media {
+  id                String       @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id           String       @db.Uuid
+  contact_id        String?      @db.Uuid
+  event_id          String?      @db.Uuid
+  interaction_id    String?      @db.Uuid
+  filename          String       @db.VarChar(500)
+  original_filename String?      @db.VarChar(500)
+  file_path         String       @db.VarChar(1000)
+  file_size         BigInt?
+  mime_type         String?      @db.VarChar(100)
+  storage_provider  String?      @default("local") @db.VarChar(50)
+  title             String?      @db.VarChar(255)
+  description       String?
+  width             Int?
+  height            Int?
+  duration_seconds  Int?
+  exif_data         Json?
+  is_private        Boolean?     @default(false)
+  access_token      String?      @db.VarChar(255)
+  uploaded_at       DateTime?    @default(now()) @db.Timestamptz(6)
+  taken_at          DateTime?    @db.Timestamptz(6)
+  deleted_at        DateTime?    @db.Timestamptz(6)
+  contacts          Contact?     @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  events            Event?       @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interactions      Interaction? @relation(fields: [interaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             User         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([contact_id], map: "idx_media_contact")
+  @@index([event_id], map: "idx_media_event")
+  @@index([uploaded_at], map: "idx_media_uploaded")
+  @@index([user_id], map: "idx_media_user")
+  @@map("media")
+  @@schema("Contact_catalog")
+}
+
+model Reminder {
+  id                    String                @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id               String                @db.Uuid
+  contact_id            String?               @db.Uuid
+  event_id              String?               @db.Uuid
+  interaction_id        String?               @db.Uuid
+  title                 String                @db.VarChar(255)
+  description           String?
+  due_at                DateTime              @db.Timestamptz(6)
+  scheduled_at          DateTime?             @db.Timestamptz(6)
+  is_recurring          Boolean?              @default(false)
+  recurrence_pattern    String?               @db.VarChar(500)
+  recurrence_end_date   DateTime?             @db.Date
+  notification_channels String[]              @default(["in_app"]) @db.VarChar(50)
+  status                String?               @default("pending") @db.VarChar(20)
+  snoozed_until         DateTime?             @db.Timestamptz(6)
+  priority              Int?
+  created_at            DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?             @default(now()) @db.Timestamptz(6)
+  completed_at          DateTime?             @db.Timestamptz(6)
+  deleted_at            DateTime?             @db.Timestamptz(6)
+  notification_history  NotificationHistory[]
+  contacts              Contact?              @relation(fields: [contact_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  events                Event?                @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  interactions          Interaction?          @relation(fields: [interaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 User                  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([contact_id], map: "idx_reminders_contact")
+  @@index([user_id, due_at, status], map: "idx_reminders_due")
+  @@index([event_id], map: "idx_reminders_event")
+  @@index([user_id], map: "idx_reminders_user")
+  @@map("reminders")
+  @@schema("Contact_catalog")
+}
+
+model NotificationHistory {
+  id            String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  user_id       String    @db.Uuid
+  reminder_id   String?   @db.Uuid
+  channel       String    @db.VarChar(50)
+  title         String    @db.VarChar(255)
+  message       String
+  payload       Json?
+  sent_at       DateTime? @default(now()) @db.Timestamptz(6)
+  delivered_at  DateTime? @db.Timestamptz(6)
+  read_at       DateTime? @db.Timestamptz(6)
+  error_message String?
+  reminders     Reminder? @relation(fields: [reminder_id], references: [id], onUpdate: NoAction)
+  users         User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([reminder_id], map: "idx_notification_history_reminder")
+  @@index([sent_at], map: "idx_notification_history_sent")
+  @@index([user_id], map: "idx_notification_history_user")
+  @@map("notification_history")
+  @@schema("Contact_catalog")
+}
