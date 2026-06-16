@@ -308,7 +308,6 @@ export function EventForm({ initialData }: EventFormProps) {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
               <Calendar
-                mode="single"
                 selected={startDate}
                 onSelect={handleStartDateChange}
                 initialFocus
@@ -345,7 +344,6 @@ export function EventForm({ initialData }: EventFormProps) {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
               <Calendar
-                mode="single"
                 selected={endDate}
                 onSelect={setEndDate}
                 initialFocus

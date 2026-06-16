@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Отключаем индикатор режима разработки (плашка в углу)
+  devIndicators: false,
+
   images: {
     remotePatterns: [
       {
