@@ -8,6 +8,7 @@ import { api } from '@/lib/api-client';
 import { ContactTimeline } from '@/components/contacts/timeline/ContactTimeline';
 import { QuickInteractionButton } from '@/components/contacts/QuickInteractionButton';
 import { RecentInteractions } from '@/components/contacts/RecentInteractions';
+import { ContactRelationships } from '@/components/contacts/ContactRelationships';
 
 interface Contact {
   id: string;
@@ -232,6 +233,14 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
         )}
+      </div>
+
+      {/* Связи с другими людьми */}
+      <div className="mt-6 sm:mt-8">
+        <ContactRelationships
+          contactId={contact.id}
+          contactName={`${contact.first_name} ${contact.last_name || ''}`.trim()}
+        />
       </div>
 
       {/* Лента воспоминаний */}
