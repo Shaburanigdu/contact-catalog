@@ -152,3 +152,7 @@ reminders, notes in AI search, tests and CI.
   "events with Peter in the last 3 years" is not turned into filters.
 - `nomic-embed-text` is an English-first model; a multilingual model would
   rank Russian text better.
+
+## License
+
+[MIT](LICENSE)
