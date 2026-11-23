@@ -10,7 +10,6 @@ import {
   format,
   isSameDay,
   isSameMonth,
-  isToday,
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
@@ -48,8 +47,23 @@ function ItemIcon({ type }: { type: ItemType }) {
 }
 
 export default function CalendarPage() {
-  const [month, setMonth] = useState(() => startOfMonth(new Date()));
-  const [selected, setSelected] = useState<Date>(() => new Date());
+  // "Today" must come from the browser: the page is prerendered at build time,
+  // and rendering a server-side date would not match the client (hydration error).
+  const [today, setToday] = useState<Date | null>(null);
+  useEffect(() => setToday(new Date()), []);
+  if (!today) {
+    return (
+      <div className="flex justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+  return <CalendarView today={today} />;
+}
+
+function CalendarView({ today }: { today: Date }) {
+  const [month, setMonth] = useState(() => startOfMonth(today));
+  const [selected, setSelected] = useState<Date>(today);
   const [items, setItems] = useState<CalendarItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,7 +100,7 @@ export default function CalendarPage() {
 
   const goTo = (m: Date) => {
     setMonth(startOfMonth(m));
-    setSelected(isSameMonth(m, new Date()) ? new Date() : startOfMonth(m));
+    setSelected(isSameMonth(m, today) ? today : startOfMonth(m));
   };
 
   return (
@@ -103,7 +117,7 @@ export default function CalendarPage() {
           <Button variant="outline" size="icon" onClick={() => goTo(addMonths(month, 1))} aria-label="Следующий месяц">
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={() => goTo(new Date())}>
+          <Button variant="outline" onClick={() => goTo(today)}>
             Сегодня
           </Button>
         </div>
@@ -152,7 +166,7 @@ export default function CalendarPage() {
                   <span
                     className={[
                       'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs sm:text-sm',
-                      isToday(day) ? 'bg-blue-600 text-white font-semibold' : '',
+                      isSameDay(day, today) ? 'bg-blue-600 text-white font-semibold' : '',
                     ].join(' ')}
                   >
                     {format(day, 'd')}

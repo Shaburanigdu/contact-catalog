@@ -169,6 +169,8 @@ export default function TrashPage() {
                           setRestoreDialog(true);
                         }}
                         className="text-green-600 hover:text-green-900 mr-2"
+                        aria-label="Восстановить"
+                        title="Восстановить"
                       >
                         <RotateCcw className="h-4 w-4" />
                       </Button>
@@ -180,6 +182,8 @@ export default function TrashPage() {
                           setHardDeleteDialog(true);
                         }}
                         className="text-red-600 hover:text-red-900"
+                        aria-label="Удалить навсегда"
+                        title="Удалить навсегда"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
