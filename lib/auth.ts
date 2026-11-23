@@ -1,6 +1,9 @@
 // lib/auth.ts
 import * as jose from 'jose';
-import bcrypt from 'bcryptjs';
+// Native bcrypt hashes in libuv worker threads; the pure-JS bcryptjs blocked the
+// event loop for ~100 ms per login and stalled every other request under load.
+// Hashes are format-compatible, so existing passwords keep working.
+import bcrypt from 'bcrypt';
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 import { NextRequest } from 'next/server';

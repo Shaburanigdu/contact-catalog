@@ -18,7 +18,9 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 
+# UV_THREADPOOL_SIZE: bcrypt hashes on libuv worker threads (default 4)
 ENV NODE_ENV=production \
+    UV_THREADPOOL_SIZE=8 \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
     UPLOAD_DIR=/data/uploads

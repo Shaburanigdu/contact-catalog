@@ -1,7 +1,7 @@
 // app/api/auth/reset-password/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { sendPasswordChangedEmail } from '@/lib/email';
 
 // GET для проверки токена (оставляем без изменений)
