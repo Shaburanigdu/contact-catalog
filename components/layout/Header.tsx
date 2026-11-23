@@ -1,7 +1,7 @@
 // components/layout/Header.tsx
 'use client';
 import dynamic from 'next/dynamic';
-import { Calendar, Archive, Search, X } from 'lucide-react';
+import { Calendar, CalendarDays, Archive, Search, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
@@ -185,8 +185,8 @@ export function Header() {
                         <div className="text-xs text-gray-500">
                           {result.type === 'contact' 
                             ? 'Контакт' 
-                            : result.type === 'event' 
-                            ? 'Событие' 
+                            : result.type === 'event'
+                            ? 'Событие'
                             : 'Взаимодействие'}
                           {result.type === 'interaction' && result.contact_name && (
                             <span className="ml-1 text-gray-400">
@@ -239,6 +239,12 @@ export function Header() {
                   <Link href="/dashboard/events" className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     События
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/calendar" className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    Календарь
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
