@@ -5,30 +5,44 @@ import { prisma } from '@/lib/prisma';
 import { verifyPassword, generateTokens } from '@/lib/auth';
 import { loginSchema } from '@/lib/validation';
 import { z } from 'zod';
+import { clientIp, loginIpLimiter, loginLimiter } from '@/lib/rate-limit';
+
+// bcrypt hash of a random string, compared against when the user does not exist
+const DUMMY_HASH = '$2b$10$Pv9ioM7IN5vK9hHF/6i6oez8ZFT15xdtXfYFVV82KGUzE4hTAl81u';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validatedData = loginSchema.parse(body);
 
+    const ip = clientIp(request.headers);
+    const limitKey = `${validatedData.email.toLowerCase()}|${ip}`;
+    const retryAfter = Math.max(loginLimiter.retryAfter(limitKey), loginIpLimiter.retryAfter(ip));
+    if (retryAfter > 0) {
+      return NextResponse.json(
+        { error: 'Слишком много попыток входа. Попробуйте позже.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+      );
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: validatedData.email },
     });
 
-    if (!user) {
+    // Always run bcrypt so the response time does not reveal whether the email exists.
+    const isValidPassword = await verifyPassword(
+      validatedData.password,
+      user && !user.deleted_at ? user.password_hash : DUMMY_HASH
+    );
+    if (!user || user.deleted_at || !isValidPassword) {
+      loginLimiter.hit(limitKey);
+      loginIpLimiter.hit(ip);
       return NextResponse.json(
         { error: 'Неверный email или пароль' },
         { status: 401 }
       );
     }
-
-    const isValidPassword = await verifyPassword(validatedData.password, user.password_hash);
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { error: 'Неверный email или пароль' },
-        { status: 401 }
-      );
-    }
+    loginLimiter.reset(limitKey);
 
     const tokens = await generateTokens({
       id: user.id,

@@ -3,20 +3,21 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import { sendPasswordChangedEmail } from '@/lib/email';
+import { hashResetToken } from '@/lib/reset-token';
 
-// GET для проверки токена (оставляем без изменений)
+// GET — проверка токена из ссылки
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
-    if (!token) {
+    if (!token || typeof token !== 'string') {
       return NextResponse.json({ error: 'Токен не указан' }, { status: 400 });
     }
 
     const user = await prisma.user.findFirst({
       where: {
-        password_reset_token: token,
+        password_reset_token: hashResetToken(token),
         password_reset_expires_at: { gt: new Date() },
         deleted_at: null,
       },
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   try {
     const { token, password } = await request.json();
 
-    if (!token || !password) {
+    if (typeof token !== 'string' || typeof password !== 'string' || !token || !password) {
       return NextResponse.json({ error: 'Токен и пароль обязательны' }, { status: 400 });
     }
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findFirst({
       where: {
-        password_reset_token: token,
+        password_reset_token: hashResetToken(token),
         password_reset_expires_at: { gt: new Date() },
         deleted_at: null,
       },
