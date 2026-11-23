@@ -103,11 +103,22 @@ export async function POST(
     },
   });
 
+  // Recompute from the actual rows: the database trigger also increments the
+  // counter, and an interaction may be logged retroactively with a past date.
+  const [total, latest] = await Promise.all([
+    prisma.interaction.count({ where: { contact_id: contactId, deleted_at: null } }),
+    prisma.interaction.findFirst({
+      where: { contact_id: contactId, deleted_at: null },
+      orderBy: { started_at: 'desc' },
+      select: { started_at: true },
+    }),
+  ]);
+
   await prisma.contact.update({
     where: { id: contactId },
     data: {
-      last_interaction_date: new Date(),
-      total_interactions: { increment: 1 },
+      last_interaction_date: latest?.started_at ?? null,
+      total_interactions: total,
       relationship_level: newRelationshipLevel,
       trust_level: newTrustLevel,
     },
