@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { getEmbedding } from '@/lib/embedding';
 import { getUserIdFromRequest } from '@/lib/auth';
 
-const prisma = new PrismaClient();
+// Cosine similarity below this value is treated as noise (tuned for nomic-embed-text).
+const MIN_SIMILARITY = Number(process.env.AI_SEARCH_MIN_SIMILARITY ?? 0.5);
 
 export async function POST(request: NextRequest) {
   try {
@@ -109,6 +110,8 @@ export async function POST(request: NextRequest) {
 
     const resultsMap = new Map<string, any>();
     for (const item of allResults) {
+      item.similarity = Number(item.similarity);
+      if (item.similarity < MIN_SIMILARITY) continue;
       const key = `${item.type}_${item.id}`;
       if (!resultsMap.has(key)) resultsMap.set(key, item);
     }

@@ -1,16 +1,9 @@
+// Backfills embeddings for existing records: npm run embeddings:generate
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { getEmbedding } from '../lib/embedding';
 
 const prisma = new PrismaClient();
-
-async function getEmbedding(text: string): Promise<number[]> {
-  const response = await fetch('http://localhost:11434/api/embed', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'nomic-embed-text', input: text }),
-  });
-  const data = await response.json();
-  return data.embeddings[0];
-}
 
 async function embedContacts() {
   const contacts = await prisma.contact.findMany({

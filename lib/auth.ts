@@ -4,10 +4,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 import { NextRequest } from 'next/server';
-
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-change-in-production';
+import { getJwtSecret, getRefreshSecret } from './config';
 
 export interface UserPayload {
   id: string;
@@ -39,8 +36,8 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 
 // Генерация пары токенов
 export async function generateTokens(user: UserPayload): Promise<AuthTokens> {
-  const secret = new TextEncoder().encode(JWT_SECRET);
-  const refreshSecret = new TextEncoder().encode(REFRESH_TOKEN_SECRET);
+  const secret = getJwtSecret();
+  const refreshSecret = getRefreshSecret();
 
   const accessToken = await new jose.SignJWT({
     id: user.id,
@@ -66,7 +63,7 @@ export async function generateTokens(user: UserPayload): Promise<AuthTokens> {
 // Проверка access токена
 export async function verifyAccessToken(token: string): Promise<UserPayload> {
   try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = getJwtSecret();
     const { payload } = await jose.jwtVerify(token, secret, {
       algorithms: ['HS256'],
     });
@@ -83,7 +80,7 @@ export async function verifyAccessToken(token: string): Promise<UserPayload> {
 // Проверка refresh токена
 export async function verifyRefreshToken(token: string): Promise<UserPayload> {
   try {
-    const secret = new TextEncoder().encode(REFRESH_TOKEN_SECRET);
+    const secret = getRefreshSecret();
     const { payload } = await jose.jwtVerify(token, secret, {
       algorithms: ['HS256'],
     });

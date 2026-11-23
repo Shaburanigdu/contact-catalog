@@ -1,5 +1,6 @@
 // app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { authCookieOptions, ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE } from '@/lib/config';
 import { prisma } from '@/lib/prisma';
 import { generateTokens, hashPassword } from '@/lib/auth';
 import { registerSchema } from '@/lib/validation';
@@ -64,21 +65,8 @@ export async function POST(request: NextRequest) {
     );
 
     // Установка cookies
-    response.cookies.set('access_token', tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60,
-      path: '/',
-    });
-
-    response.cookies.set('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/',
-    });
+    response.cookies.set('access_token', tokens.accessToken, authCookieOptions(ACCESS_TOKEN_MAX_AGE));
+    response.cookies.set('refresh_token', tokens.refreshToken, authCookieOptions(REFRESH_TOKEN_MAX_AGE));
 
     return response;
   } catch (error) {

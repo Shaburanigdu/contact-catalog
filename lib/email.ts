@@ -1,28 +1,22 @@
 // lib/email.ts
 import nodemailer from 'nodemailer';
 
-// Надёжная конфигурация для Mailtrap / любого SMTP с портом 587 или 2525
+// SMTP over STARTTLS (ports 587 / 2525), e.g. Mailtrap for development
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT),
-  secure: false, // 587 и 2525 требуют STARTTLS, а не SSL
+  port: Number(process.env.EMAIL_PORT || 587),
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
   tls: {
-    rejectUnauthorized: false, // полезно для самоподписанных сертификатов и dev-среды
+    // Only for local SMTP servers with self-signed certificates
+    rejectUnauthorized: process.env.SMTP_ALLOW_SELF_SIGNED !== 'true',
   },
 });
 
-// Проверка соединения (полезна для отладки)
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('❌ SMTP connection error:', error);
-  } else {
-    console.log('✅ SMTP server is ready to send messages');
-  }
-});
+const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
 function getEmailTemplate(content: string, title: string): string {
   return `
@@ -80,7 +74,7 @@ function getEmailTemplate(content: string, title: string): string {
 }
 
 export async function sendPasswordResetEmail(email: string, resetToken: string) {
-  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password/${resetToken}`;
+  const resetUrl = `${APP_URL}/reset-password/${resetToken}`;
   
   const content = `
     <h2 style="font-size: 24px; font-weight: 600; color: #111827; margin-bottom: 16px;">Сброс пароля</h2>

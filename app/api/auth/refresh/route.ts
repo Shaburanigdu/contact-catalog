@@ -1,5 +1,6 @@
 // app/api/auth/refresh/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { authCookieOptions, ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE } from '@/lib/config';
 import { verifyRefreshToken, generateTokens } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
@@ -50,21 +51,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Установка новых cookies
-    response.cookies.set('access_token', tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60,
-      path: '/',
-    });
-
-    response.cookies.set('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/',
-    });
+    response.cookies.set('access_token', tokens.accessToken, authCookieOptions(ACCESS_TOKEN_MAX_AGE));
+    response.cookies.set('refresh_token', tokens.refreshToken, authCookieOptions(REFRESH_TOKEN_MAX_AGE));
     
     console.log(`Refresh attempt for user ${payload?.id} at ${new Date().toISOString()}`);
     return response;
