@@ -55,14 +55,13 @@ export function Calendar({
   })
 
   // Дни недели (пн, вт, ср, чт, пт, сб, вс)
+  // Weekday labels depend only on the locale, not on the visible month
   const weekDays = React.useMemo(() => {
-    const days = []
-    for (let i = 0; i < 7; i++) {
-      const day = addDays(calendarStart, i)
-      days.push(format(day, "EEEEEE", { locale }))
-    }
-    return days
-  }, [calendarStart, locale])
+    const monday = startOfWeek(new Date(2024, 0, 1), { weekStartsOn: 1 })
+    return Array.from({ length: 7 }, (_, i) =>
+      format(addDays(monday, i), "EEEEEE", { locale })
+    )
+  }, [locale])
 
   const handlePrevMonth = () => {
     setCurrentMonth((prev) => subMonths(prev, 1))

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const entity = searchParams.get('entity') || 'all'; // 'contacts', 'events', 'all'
 
-    let where: any = {
+    const where: any = {
       OR: [
         { user_id: user.id },
         { is_system: true }

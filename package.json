@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "embeddings:generate": "npx tsx scripts/generate-embeddings.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -73,7 +74,9 @@
     "eslint": "^9.39.3",
     "eslint-config-next": "^16.1.6",
     "prisma": "^5.22.0",
-    "typescript": "^5.3.3"
+    "tsx": "^4.23.15",
+    "typescript": "^5.3.3",
+    "vitest": "^3.2.7"
   },
   "overrides": {
     "minimatch": "^10.2.1"
