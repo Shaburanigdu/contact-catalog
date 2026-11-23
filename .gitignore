@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# environment and secrets
+.env
+.env.*
+!.env.example
+
+# user uploads (personal data)
+public/uploads/
+
+# local tooling
+.vs/
+.vscode/
+.idea/
+ollama/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

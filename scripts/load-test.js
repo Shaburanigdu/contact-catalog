@@ -24,8 +24,8 @@ export default function () {
   //    будем логиниться в каждой итерации – для простоты. Можно использовать sharedState,
   //    но для нагрузочного теста это допустимо)
   const loginPayload = JSON.stringify({
-    email: 'test@example.com',      // замените на реального тестового пользователя
-    password: '111111',
+    email: __ENV.TEST_EMAIL || 'test@example.com',
+    password: __ENV.TEST_PASSWORD || 'password123',
   });
 
   const loginParams = {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { RELATIONSHIP_LABELS } from '@/lib/constants'
@@ -42,7 +42,7 @@ interface ContactListProps {
   onContactDeleted?: () => void
 }
 
-export function ContactList({ limit = 20, showFilters = true, onContactDeleted }: ContactListProps) {
+function ContactListInner({ limit = 20, showFilters = true, onContactDeleted }: ContactListProps) {
   const { fetchContacts, loading, error, deleteContact } = useContacts()
   const searchParams = useSearchParams()
   const [contacts, setContacts] = useState<any[]>([])
@@ -457,5 +457,14 @@ export function ContactList({ limit = 20, showFilters = true, onContactDeleted }
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+// Suspense нужен для useSearchParams() при production-сборке
+export function ContactList(props: ContactListProps) {
+  return (
+    <Suspense fallback={null}>
+      <ContactListInner {...props} />
+    </Suspense>
   )
 }
