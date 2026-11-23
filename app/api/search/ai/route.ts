@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getEmbedding } from '@/lib/embedding';
 import { getUserIdFromRequest } from '@/lib/auth';
+import { rankResults } from '@/lib/search-ranking';
 
-// Cosine similarity below this value is treated as noise (tuned for nomic-embed-text).
+// nomic-embed-text scores almost any Russian text at 0.6–0.7, so an absolute
+// threshold alone lets noise through; semantic hits must also be close to the best one.
 const MIN_SIMILARITY = Number(process.env.AI_SEARCH_MIN_SIMILARITY ?? 0.5);
+const RELATIVE_GAP = Number(process.env.AI_SEARCH_RELATIVE_GAP ?? 0.05);
 
 export async function POST(request: NextRequest) {
   try {
@@ -137,17 +140,8 @@ export async function POST(request: NextRequest) {
       ...vectorNotes,
     ];
 
-    const resultsMap = new Map<string, any>();
-    for (const item of allResults) {
-      item.similarity = Number(item.similarity);
-      if (item.similarity < MIN_SIMILARITY) continue;
-      const key = `${item.type}_${item.id}`;
-      if (!resultsMap.has(key)) resultsMap.set(key, item);
-    }
-
-    const results = Array.from(resultsMap.values())
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 10);
+    for (const item of allResults) item.similarity = Number(item.similarity);
+    const results = rankResults(allResults, MIN_SIMILARITY, RELATIVE_GAP);
 
     return NextResponse.json({ results });
   } catch (error) {
