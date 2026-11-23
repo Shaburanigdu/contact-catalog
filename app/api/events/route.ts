@@ -6,28 +6,19 @@ import { startOfDay, endOfDay } from 'date-fns';
 import { getEmbedding } from '@/lib/embedding';
 
 
-// Функция для автоматического архивирования прошедших событий
+// Past events move to the archive by becoming "completed". deleted_at is reserved
+// for events the user actually deleted, so the two stay distinguishable.
 async function archivePastEvents(userId: string) {
   try {
-    const now = new Date();
-    const pastEvents = await prisma.event.findMany({
+    await prisma.event.updateMany({
       where: {
         user_id: userId,
         deleted_at: null,
-        start_at: { lt: now },
+        status: 'scheduled',
+        start_at: { lt: new Date() },
       },
-      select: { id: true },
+      data: { status: 'completed' },
     });
-
-    if (pastEvents.length > 0) {
-      await prisma.event.updateMany({
-        where: {
-          id: { in: pastEvents.map(e => e.id) },
-        },
-        data: { deleted_at: now },
-      });
-      console.log(`✅ Archived ${pastEvents.length} past events for user ${userId}`);
-    }
   } catch (error) {
     console.error('Error archiving past events:', error);
   }
@@ -63,8 +54,8 @@ export async function GET(request: NextRequest) {
     };
 
     if (status === 'archived') {
-      // В архиве: события с deleted_at не null (прошедшие или удалённые)
-      where.deleted_at = { not: null };
+      // Archive: past (completed) and deleted events
+      where.AND = [{ OR: [{ status: 'completed' }, { deleted_at: { not: null } }] }];
     } else {
       // Активные: не удалённые
       where.deleted_at = null;

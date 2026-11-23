@@ -22,6 +22,7 @@ interface Event {
   end_at?: string;
   location?: string;
   status: string;
+  deleted_at?: string | null;
   event_types?: { id: string; name: string; color: string };
   participants: Array<{ id: string; first_name: string; last_name: string }>;
 }
@@ -247,7 +248,18 @@ export default function EventsArchivePage() {
             <div key={event.id} className="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold text-lg">{event.title}</h3>
+                  <div className="flex items-center gap-2">
+                    {event.deleted_at ? (
+                      <h3 className="font-semibold text-lg">{event.title}</h3>
+                    ) : (
+                      <Link href={`/dashboard/events/${event.id}`} className="font-semibold text-lg hover:underline">
+                        {event.title}
+                      </Link>
+                    )}
+                    <Badge variant="outline" className={event.deleted_at ? 'text-red-600 border-red-200' : 'text-gray-600'}>
+                      {event.deleted_at ? 'Удалено' : 'Прошло'}
+                    </Badge>
+                  </div>
                   <p className="text-sm text-gray-600">
                     {format(new Date(event.start_at), 'dd MMM yyyy, HH:mm', { locale: ru })}
                     {event.end_at && ` — ${format(new Date(event.end_at), 'HH:mm')}`}

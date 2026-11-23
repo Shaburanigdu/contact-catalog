@@ -36,9 +36,7 @@ export async function GET(request: NextRequest) {
       where: {
         user_id: user.id,
         start_at: { gte: from, lte: to },
-        // Past events are auto-archived by setting deleted_at after they start;
-        // events deleted before they happened stay hidden.
-        OR: [{ deleted_at: null }, { deleted_at: { gt: prisma.event.fields.start_at } }],
+        deleted_at: null, // past events stay visible as "completed"
       },
       select: {
         id: true,
