@@ -8,6 +8,7 @@ import { Paperclip, Send, Bell, X } from 'lucide-react'
 import { DatePicker } from '@/components/ui/date-picker'
 import { api } from '@/lib/api-client'
 import { toast } from '@/components/ui/toast'
+import { REPEAT_OPTIONS } from '@/lib/recurrence'
 
 interface TimelineInputProps {
   contactId: string
@@ -21,6 +22,7 @@ export function TimelineInput({ contactId, onNewItem }: TimelineInputProps) {
   const [showReminder, setShowReminder] = useState(false)
   const [reminderTitle, setReminderTitle] = useState('')
   const [reminderDate, setReminderDate] = useState<Date>()
+  const [reminderRepeat, setReminderRepeat] = useState<string>('none')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,10 +86,12 @@ export function TimelineInput({ contactId, onNewItem }: TimelineInputProps) {
           title: reminderTitle,
           description: message,
           due_at: reminderDate.toISOString(),
+          repeat: reminderRepeat,
         })
         setShowReminder(false)
         setReminderTitle('')
         setReminderDate(undefined)
+        setReminderRepeat('none')
         setMessage('')
         onNewItem()
         toast.success('Напоминание создано')
@@ -135,6 +139,18 @@ export function TimelineInput({ contactId, onNewItem }: TimelineInputProps) {
             onSelect={setReminderDate}
             placeholder="Выберите дату"
           />
+          <select
+            aria-label="Повтор"
+            value={reminderRepeat}
+            onChange={(e) => setReminderRepeat(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            {REPEAT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -150,7 +166,7 @@ export function TimelineInput({ contactId, onNewItem }: TimelineInputProps) {
           <input
             type="file"
             multiple
-            accept="image/*,video/*,audio/*"
+            accept="image/*"
             className="hidden"
             ref={fileInputRef}
             onChange={handleFileChange}

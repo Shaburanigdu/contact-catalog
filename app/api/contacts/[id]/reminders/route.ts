@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest } from '@/lib/request-utils'
 import { prisma } from '@/lib/prisma'
+import { ruleForRepeat } from '@/lib/recurrence'
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +16,8 @@ export async function POST(
     const { id: contactId } = await params
 
     const body = await request.json()
-    const { title, description, due_at } = body
+    const { title, description, due_at, repeat } = body
+    const recurrenceRule = ruleForRepeat(repeat)
 
     if (!title || !due_at) {
       return NextResponse.json({ success: false, error: 'Название и дата обязательны' }, { status: 400 })
@@ -37,6 +39,8 @@ export async function POST(
         due_at: new Date(due_at),
         created_at: new Date(),
         status: 'pending',
+        is_recurring: recurrenceRule !== null,
+        recurrence_pattern: recurrenceRule,
       },
     })
 
