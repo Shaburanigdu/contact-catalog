@@ -1,71 +1,75 @@
+// Load test: login, contact list and full-text search per iteration.
+//   k6 run -e BASE_URL=http://localhost:3000 -e TEST_EMAIL=... -e TEST_PASSWORD=... scripts/k6-load-test.js
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate } from 'k6/metrics';
 
-// Кастомная метрика для отслеживания ошибок
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+
+// Share of failed checks (each check records true/false, so this is a real rate)
 const errorRate = new Rate('error_rate');
 
-// Конфигурация теста
+// Same profile as the thesis run: up to 200 virtual users over 5 minutes
 export const options = {
+  // keep auth cookies between iterations (needed for LOGIN_ONCE)
+  noCookiesReset: true,
   stages: [
     { duration: '1m', target: 50 },
-    { duration: '1m', target: 50 },
+    { duration: '1m', target: 100 },
+    { duration: '1m', target: 200 },
+    { duration: '1m', target: 200 },
+    { duration: '1m', target: 0 },
   ],
   thresholds: {
-    http_req_failed: ['rate<0.05'],    // Доля ошибок не более 5%
-    http_req_duration: ['p(95)<500'],  // 95% запросов быстрее 500 мс
+    http_req_failed: ['rate<0.05'],
+    http_req_duration: ['p(95)<500'],
     error_rate: ['rate<0.05'],
+    // Per-endpoint view: login is deliberately slow (bcrypt), browsing must stay fast
+    'http_req_duration{name:login}': ['p(95)<2000'],
+    'http_req_duration{name:contacts}': ['p(95)<500'],
+    'http_req_duration{name:search}': ['p(95)<500'],
   },
 };
 
-// Основная функция, запускаемая для каждого виртуального пользователя
+function record(res, checks) {
+  const ok = check(res, checks);
+  errorRate.add(!ok);
+}
+
+// LOGIN_ONCE=true: each virtual user signs in once and then keeps browsing
+// (realistic, the access token lives 15 minutes). Default: sign in on every
+// iteration, as in the thesis run — a login storm that stresses bcrypt.
+const LOGIN_ONCE = __ENV.LOGIN_ONCE === 'true';
+
 export default function () {
-  // 1. Логин (один раз на виртуального пользователя, но т.к. k6 может создавать новых,
-  //    будем логиниться в каждой итерации – для простоты. Можно использовать sharedState,
-  //    но для нагрузочного теста это допустимо)
-  const loginPayload = JSON.stringify({
-    email: __ENV.TEST_EMAIL || 'test@example.com',
-    password: __ENV.TEST_PASSWORD || 'password123',
-  });
-
-  const loginParams = {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-
-  const loginRes = http.post('http://localhost:3000/api/auth/login', loginPayload, loginParams);
-  check(loginRes, {
-    'login status is 200': (r) => r.status === 200,
-  }) || errorRate.add(1);
-
-  // Получаем cookies (k6 автоматически сохранит их в jar)
-  // Если API возвращает токен в теле, можно извлечь, но обычно JWT в httpOnly cookie
-
-  // Небольшая пауза после логина
+  if (LOGIN_ONCE && __ITER > 0) {
+    browse();
+    return;
+  }
+  const loginRes = http.post(
+    `${BASE_URL}/api/auth/login`,
+    JSON.stringify({
+      email: __ENV.TEST_EMAIL || 'test@example.com',
+      password: __ENV.TEST_PASSWORD || 'password123',
+    }),
+    { headers: { 'Content-Type': 'application/json' }, tags: { name: 'login' } }
+  );
+  record(loginRes, { 'login status is 200': (r) => r.status === 200 });
   sleep(1);
+  browse();
+}
 
-  // 2. Тестируем GET /api/contacts (список)
-  const contactsRes = http.get('http://localhost:3000/api/contacts?page=1&limit=20');
-  check(contactsRes, {
+function browse() {
+  const contactsRes = http.get(`${BASE_URL}/api/contacts?page=1&limit=20`, { tags: { name: 'contacts' } });
+  record(contactsRes, {
     'contacts status 200': (r) => r.status === 200,
     'contacts response has data': (r) => r.json('data') !== undefined,
-  }) || errorRate.add(1);
-
-  // Измеряем длительность (автоматически попадает в метрику http_req_duration)
-
+  });
   sleep(0.5);
 
-  // 3. Тестируем GET /api/contacts?search=... (полнотекстовый поиск)
-  const searchRes = http.get('http://localhost:3000/api/contacts?search=test&page=1&limit=20');
-  check(searchRes, {
-    'search returns array': (r) => {
-      const body = r.json();
-      // Ожидаем либо { data: { contacts: [] } }, либо напрямую массив в data
-      return Array.isArray(body?.data?.contacts) || Array.isArray(body?.data);
-    },
-  }) || errorRate.add(1);
-
-  // Имитация реального поведения: пауза между действиями
+  const searchRes = http.get(`${BASE_URL}/api/contacts?search=test&page=1&limit=20`, { tags: { name: 'search' } });
+  record(searchRes, {
+    'search returns array': (r) => r.status === 200 && Array.isArray(r.json('data.contacts')),
+  });
   sleep(1);
 }

@@ -122,8 +122,13 @@ Useful scripts:
 - CI runs lint, type checking, tests and a production build, applies the
   migrations to a fresh pgvector database and checks them against the Prisma
   schema, and builds the Docker image.
-- Results of the load (k6), security (OWASP ZAP), Lighthouse and database
-  tests carried out for the thesis are in [`docs/testing`](docs/testing).
+- Load test (k6, up to 200 users): after replacing the pure-JS `bcryptjs`,
+  which blocked the event loop on every login, throughput went from 26 to
+  112 req/s and p95 latency from 6.2 s to 0.54 s; with users signing in once,
+  p95 is 300 ms at 134 req/s. Details in
+  [`docs/testing/k6-results.md`](docs/testing/k6-results.md).
+- Results of the security (OWASP ZAP), Lighthouse and database tests carried
+  out for the thesis are in [`docs/testing`](docs/testing).
 
 ## Project history
 
