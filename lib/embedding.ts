@@ -7,7 +7,8 @@ export async function getEmbedding(text: string): Promise<number[]> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: EMBEDDING_MODEL, input: text }),
-    signal: AbortSignal.timeout(10_000),
+    // generous: the first request after start loads the model into memory
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) {
