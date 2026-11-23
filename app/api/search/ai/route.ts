@@ -37,6 +37,17 @@ export async function POST(request: NextRequest) {
         AND title ILIKE ${`%${cleanQuery}%`}
     `;
 
+    const exactNotes = await prisma.$queryRaw<any[]>`
+      SELECT
+        n.id, n.title, n.content, n.contact_id, 'note' as type, 1.0 as similarity,
+        c.first_name || ' ' || COALESCE(c.last_name, '') as contact_name
+      FROM "Contact_catalog".notes n
+      LEFT JOIN "Contact_catalog".contacts c ON n.contact_id = c.id
+      WHERE n.deleted_at IS NULL AND n.user_id = ${userId}::uuid
+        AND (n.title ILIKE ${`%${cleanQuery}%`} OR n.content ILIKE ${`%${cleanQuery}%`})
+      LIMIT 10
+    `;
+
     const exactInteractions = await prisma.$queryRaw<any[]>`
       SELECT
         i.id, i.title, i.description, i.contact_id, 'interaction' as type, 1.0 as similarity,
@@ -53,18 +64,20 @@ export async function POST(request: NextRequest) {
     let vectorContacts: any[] = [];
     let vectorEvents: any[] = [];
     let vectorInteractions: any[] = [];
+    let vectorNotes: any[] = [];
 
     try {
       const embedding = await getEmbedding(cleanQuery);
+      const vec = JSON.stringify(embedding);
 
       if (exactContacts.length < 10) {
         vectorContacts = await prisma.$queryRaw<any[]>`
           SELECT
             id, first_name, last_name, 'contact' as type,
-            1 - (embedding <=> ${JSON.stringify(embedding)}::vector) as similarity
+            1 - (embedding <=> ${vec}::vector) as similarity
           FROM "Contact_catalog".contacts
           WHERE deleted_at IS NULL AND user_id = ${userId}::uuid AND embedding IS NOT NULL
-          ORDER BY similarity DESC
+          ORDER BY embedding <=> ${vec}::vector
           LIMIT ${10 - exactContacts.length}
         `;
       }
@@ -72,10 +85,10 @@ export async function POST(request: NextRequest) {
       if (exactEvents.length < 10) {
         vectorEvents = await prisma.$queryRaw<any[]>`
           SELECT id, title, 'event' as type,
-            1 - (embedding <=> ${JSON.stringify(embedding)}::vector) as similarity
+            1 - (embedding <=> ${vec}::vector) as similarity
           FROM "Contact_catalog".events
           WHERE deleted_at IS NULL AND user_id = ${userId}::uuid AND embedding IS NOT NULL
-          ORDER BY similarity DESC
+          ORDER BY embedding <=> ${vec}::vector
           LIMIT ${10 - exactEvents.length}
         `;
       }
@@ -84,13 +97,27 @@ export async function POST(request: NextRequest) {
         vectorInteractions = await prisma.$queryRaw<any[]>`
           SELECT
             i.id, i.title, i.description, i.contact_id, 'interaction' as type,
-            1 - (i.embedding <=> ${JSON.stringify(embedding)}::vector) as similarity,
+            1 - (i.embedding <=> ${vec}::vector) as similarity,
             c.first_name || ' ' || COALESCE(c.last_name, '') as contact_name
           FROM "Contact_catalog".interactions i
           LEFT JOIN "Contact_catalog".contacts c ON i.contact_id = c.id
           WHERE i.deleted_at IS NULL AND i.user_id = ${userId}::uuid AND i.embedding IS NOT NULL
-          ORDER BY similarity DESC
+          ORDER BY i.embedding <=> ${vec}::vector
           LIMIT ${10 - exactInteractions.length}
+        `;
+      }
+
+      if (exactNotes.length < 10) {
+        vectorNotes = await prisma.$queryRaw<any[]>`
+          SELECT
+            n.id, n.title, n.content, n.contact_id, 'note' as type,
+            1 - (n.embedding <=> ${vec}::vector) as similarity,
+            c.first_name || ' ' || COALESCE(c.last_name, '') as contact_name
+          FROM "Contact_catalog".notes n
+          LEFT JOIN "Contact_catalog".contacts c ON n.contact_id = c.id
+          WHERE n.deleted_at IS NULL AND n.user_id = ${userId}::uuid AND n.embedding IS NOT NULL
+          ORDER BY n.embedding <=> ${vec}::vector
+          LIMIT ${10 - exactNotes.length}
         `;
       }
     } catch (embedError) {
@@ -103,9 +130,11 @@ export async function POST(request: NextRequest) {
       ...exactContacts,
       ...exactEvents,
       ...exactInteractions,
+      ...exactNotes,
       ...vectorContacts,
       ...vectorEvents,
       ...vectorInteractions,
+      ...vectorNotes,
     ];
 
     const resultsMap = new Map<string, any>();

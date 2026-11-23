@@ -94,8 +94,8 @@ export function Header() {
       router.push(`/dashboard/contacts/${result.id}`);
     } else if (result.type === 'event') {
       router.push(`/dashboard/events/${result.id}`);
-    } else if (result.type === 'interaction') {
-      // Переход на страницу контакта, к которому относится взаимодействие
+    } else if (result.type === 'interaction' || result.type === 'note') {
+      // Переход на страницу контакта, к которому относится взаимодействие или заметка
       if (result.contact_id) {
         router.push(`/dashboard/contacts/${result.contact_id}`);
       }
@@ -180,6 +180,8 @@ export function Header() {
                             ? `${result.first_name} ${result.last_name || ''}`
                             : result.type === 'event'
                             ? result.title
+                            : result.type === 'note'
+                            ? result.title || (result.content?.length > 60 ? result.content.slice(0, 60) + '…' : result.content)
                             : result.title || 'Взаимодействие'}
                         </div>
                         <div className="text-xs text-gray-500">
@@ -187,8 +189,10 @@ export function Header() {
                             ? 'Контакт' 
                             : result.type === 'event'
                             ? 'Событие'
+                            : result.type === 'note'
+                            ? 'Заметка'
                             : 'Взаимодействие'}
-                          {result.type === 'interaction' && result.contact_name && (
+                          {(result.type === 'interaction' || result.type === 'note') && result.contact_name && (
                             <span className="ml-1 text-gray-400">
                               — {result.contact_name}
                             </span>

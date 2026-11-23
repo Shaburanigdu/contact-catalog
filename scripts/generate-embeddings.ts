@@ -65,6 +65,24 @@ async function embedInteractions() {
   }
 }
 
+async function embedNotes() {
+  const notes = await prisma.note.findMany({
+    where: { deleted_at: null },
+    select: { id: true, title: true, content: true },
+  });
+  for (const note of notes) {
+    const text = `${note.title || ''} ${note.content}`.trim();
+    if (!text) continue;
+    const embedding = await getEmbedding(text);
+    await prisma.$executeRaw`
+      UPDATE "Contact_catalog".notes
+      SET embedding = ${JSON.stringify(embedding)}::vector
+      WHERE id = ${note.id}::uuid
+    `;
+    console.log(`✅ Note ${note.id}`);
+  }
+}
+
 async function main() {
   console.log('Generating embeddings for contacts...');
   await embedContacts();
@@ -72,7 +90,8 @@ async function main() {
   await embedEvents();
   console.log('Generating embeddings for interactions...');
   await embedInteractions();
-  // При необходимости добавить embedNotes
+  console.log('Generating embeddings for notes...');
+  await embedNotes();
   console.log('Done');
 }
 

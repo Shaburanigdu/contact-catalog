@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest } from '@/lib/request-utils'
 import { prisma } from '@/lib/prisma'
+import { getEmbedding } from '@/lib/embedding'
 
 export async function POST(
   request: NextRequest,
@@ -37,6 +38,18 @@ export async function POST(
         created_at: new Date(),
       },
     })
+
+    // Index the note for AI search; failure (e.g. Ollama offline) must not block saving.
+    try {
+      const embedding = await getEmbedding(`${note.title || ''} ${note.content}`.trim())
+      await prisma.$executeRaw`
+        UPDATE "Contact_catalog".notes
+        SET embedding = ${JSON.stringify(embedding)}::vector
+        WHERE id = ${note.id}::uuid
+      `
+    } catch (err) {
+      console.error('Failed to generate embedding for note:', err)
+    }
 
     return NextResponse.json({
       success: true,

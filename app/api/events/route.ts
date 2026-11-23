@@ -54,6 +54,9 @@ export async function GET(request: NextRequest) {
     const typeId = searchParams.get('typeId');
     const contactId = searchParams.get('contactId');
     const search = searchParams.get('search');
+    const tagIds = searchParams.get('tagIds')?.split(',').filter(Boolean) ?? [];
+    const location = searchParams.get('location');
+    const hasMedia = searchParams.get('hasMedia') === 'true';
 
     const where: any = {
       user_id: user.id,
@@ -100,6 +103,18 @@ export async function GET(request: NextRequest) {
       where.event_participants = {
         some: { contact_id: contactId },
       };
+    }
+
+    if (tagIds.length > 0) {
+      where.event_tags = { some: { tag_id: { in: tagIds } } };
+    }
+
+    if (location) {
+      where.location = { contains: location, mode: 'insensitive' };
+    }
+
+    if (hasMedia) {
+      where.media = { some: { deleted_at: null } };
     }
 
     if (search) {
