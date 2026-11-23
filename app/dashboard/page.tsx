@@ -27,7 +27,8 @@ interface DashboardStats {
   totalContacts?: number
   contactsByCity?: Array<{ city: string; count: number }>
   contactsWithoutInteraction?: number
-  upcomingEventsCount?: number   // новое поле
+  upcomingEventsCount?: number
+  interactionsLast30Days?: number
 }
 
 export default function DashboardPage() {
@@ -128,8 +129,8 @@ export default function DashboardPage() {
                   <div className="bg-white rounded-lg shadow p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Аналитика</p>
-                        <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+                        <p className="text-sm font-medium text-gray-600">Общение за 30 дней</p>
+                        <p className="text-3xl font-bold text-gray-900 mt-2">{stats.interactionsLast30Days || 0}</p>
                       </div>
                       <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
                         <Activity className="h-6 w-6 text-purple-600" />
